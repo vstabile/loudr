@@ -22,6 +22,7 @@ import {
 import Settings from "./Settings";
 import { LucideSettings, LucideLogOut } from "lucide-solid";
 import { truncatedNpub } from "../lib/utils";
+import { clearSession } from "../stores/session";
 
 export default function User() {
   const account = from(accounts.active$);
@@ -34,6 +35,8 @@ export default function User() {
     const account = accounts.active;
     accounts.removeAccount(account);
     accounts.clearActive();
+
+    clearSession();
   };
 
   // fetch the user's profile when they sign in

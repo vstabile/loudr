@@ -8,6 +8,7 @@ import { createSignal, For, onCleanup, onMount } from "solid-js";
 import { KINDS, rxNostr } from "./nostr";
 import { createRxForwardReq } from "rx-nostr";
 import CampaignCard from "./components/CampaignCard";
+import { restoreSession } from "./stores/session";
 
 function App() {
   const [campaigns, setCampaigns] = createSignal<NostrEvent[]>([]);
@@ -28,7 +29,8 @@ function App() {
   // Clean up subscription when component unmounts
   onCleanup(() => subscription.unsubscribe());
 
-  onMount(() => {
+  onMount(async () => {
+    await restoreSession();
     // Subscribe to campaign events
     const rxReq = createRxForwardReq();
 

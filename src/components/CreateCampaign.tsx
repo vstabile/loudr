@@ -25,6 +25,7 @@ import { NostrEvent } from "nostr-tools";
 import { TopicsInput } from "./TopicsInput";
 import { MintsInput } from "./MintsInput";
 import KindInputGroup from "./KindInputGroup";
+import { LucideLoader } from "lucide-solid";
 
 export default function CreateCampaign() {
   const [isOpen, setIsOpen] = createSignal(false);
@@ -135,8 +136,12 @@ export default function CreateCampaign() {
             </div>
           </DialogHeader>
           <DialogFooter>
-            <Button type="submit" class="w-full">
-              Publish Campaign
+            <Button type="submit" class="w-full" disabled={form.submitting}>
+              {!form.submitting ? (
+                "Publish Campaign"
+              ) : (
+                <LucideLoader class="animate-spin" />
+              )}
             </Button>
           </DialogFooter>
         </Form>

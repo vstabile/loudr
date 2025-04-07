@@ -23,8 +23,7 @@ const defaultProps = {
       <LucideNut class="w-4 h-4" /> Trusted Mints
     </div>
   ),
-  description:
-    "Mints you trust that correctly implement NIP-07, NIP-10 and NIP-11.",
+  description: "Mints you trust that correctly implement NIP-07 and NIP-11.",
 };
 
 export function MintsInput(props: MintInputProps) {

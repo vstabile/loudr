@@ -7,7 +7,7 @@ import {
   getValue,
   setValue,
 } from "@modular-forms/solid";
-import EventInput from "./EventInput";
+import EventInput, { toEventId } from "./EventInput";
 import { CampaignForm } from "../schemas/campaignSchema";
 import { TextField, TextFieldTextArea } from "./ui/text-field";
 import { eventTemplate } from "../schemas/miscSchema";
@@ -15,7 +15,9 @@ import { eventLoader } from "../loaders";
 import { queryStore } from "../stores";
 import { of } from "rxjs";
 import { NostrEvent } from "nostr-tools";
-import { LucideLoader } from "lucide-solid";
+import EventPreview from "./EventPreview";
+import { LucideRepeat2 } from "lucide-solid";
+import EmojiPicker from "./EmojiPicker";
 
 type KindInputGroupProps = {
   form: FormStore<CampaignForm>;
@@ -23,6 +25,7 @@ type KindInputGroupProps = {
 
 export default function KindInputGroup(props: KindInputGroupProps) {
   const [content, setContent] = createSignal("");
+  const kind = createMemo(() => getValue(props.form, "kind"));
 
   const contentPlaceholder = createMemo(() => {
     const kind = getValue(props.form, "kind");
@@ -62,9 +65,7 @@ export default function KindInputGroup(props: KindInputGroupProps) {
         const nostrEventId = createMemo(() => getValue(props.form, "eventId"));
 
         const nostrEvent = from<NostrEvent>(
-          getValue(props.form, "eventId")
-            ? queryStore.event(nostrEventId()!)
-            : of(undefined)
+          nostrEventId() ? queryStore.event(nostrEventId()!) : of(undefined)
         );
 
         function formatContent(
@@ -142,19 +143,41 @@ export default function KindInputGroup(props: KindInputGroupProps) {
 
               <Show when={showEventInput()}>
                 <div class="flex-auto">
-                  <Field name="eventId" of={props.form}>
-                    {(eventField, _) => (
-                      <EventInput
-                        kind={field.value!}
-                        value={eventField.value}
-                        onChange={(value) =>
-                          setValue(props.form, "eventId", value)
-                        }
-                        description=""
-                        form={props.form}
-                      />
-                    )}
-                  </Field>
+                  <div class="flex items-center gap-2 relative">
+                    <Show when={kind() === 6}>
+                      <LucideRepeat2 class="h-5 w-5 absolute left-3 text-muted-foreground" />
+                    </Show>
+                    <Show when={kind() === 7}>
+                      <div class="absolute left-3 items-center flex text-lg">
+                        <Field name="reaction" of={props.form}>
+                          {(reactionField, _) => (
+                            <EmojiPicker
+                              value={reactionField.value}
+                              onChange={(value) =>
+                                setValue(props.form, "reaction", value)
+                              }
+                            />
+                          )}
+                        </Field>
+                      </div>
+                    </Show>
+                    <Field
+                      name="eventId"
+                      of={props.form}
+                      transform={toEventId()}
+                    >
+                      {(eventField, eventFieldProps) => (
+                        <EventInput
+                          {...eventFieldProps}
+                          value={eventField.value}
+                          class={
+                            (kind() === 6 ? "rounded-b-none " : "") +
+                            "pl-10 rounded-l-none border-l-0"
+                          }
+                        />
+                      )}
+                    </Field>
+                  </div>
                 </div>
               </Show>
             </div>
@@ -182,13 +205,7 @@ export default function KindInputGroup(props: KindInputGroupProps) {
               </TextField>
             </Show>
             <Show when={nostrEventId()}>
-              <div class="border mt-2 py-2 px-4 text-muted-foreground text-sm border-gray-200 rounded-md">
-                {nostrEvent() ? (
-                  nostrEvent()?.content
-                ) : (
-                  <LucideLoader class="animate-spin" />
-                )}
-              </div>
+              <EventPreview event={nostrEvent()} />
             </Show>
             {field.error && (
               <p class="text-red-500 text-xs ml-0.5 mt-1 w-full">
