@@ -4,6 +4,14 @@ import { eventStore } from "./stores";
 import { accounts } from "./accounts";
 import { CampaignForm } from "./schemas/campaignSchema";
 import { KINDS } from "./nostr";
+import { from } from "solid-js";
+
+type PartialTemplate = {
+  kind: number;
+  content?: string;
+  tags?: string[][];
+  created_at?: number;
+};
 
 // The event factory is used to build and modify nostr events
 export const factory = new EventFactory({
@@ -19,19 +27,80 @@ export function Campaign(form: CampaignForm): Action {
   return async function* ({ factory }) {
     const created_at = Math.floor(Date.now() / 1000);
 
+    // TODO: When repost, check the kind of the reposted event because
+    // it can the template kind can be 1 (quoted), 6 (note) or 16 (generic)
+    let template: PartialTemplate = {
+      kind: form.kind,
+    };
+
+    // Reposting an event
+    if (form.kind === 6) {
+      // TODO: include the stringified reposted event and p tag
+      template = { ...template, tags: [["e", form.eventId!]] };
+      // Reaction to an event
+    } else if (form.kind === 7) {
+      template.content = form.reaction;
+
+      // TODO: include the p tag and k tag of the event being reacted to
+      const coordinates = form.eventId!.split(":");
+      if (coordinates && coordinates.length === 3) {
+        template = {
+          ...template,
+          // TODO: also include the e tag of the event being reacted to
+          tags: [["a", form.eventId!]],
+        };
+      } else {
+        template = {
+          ...template,
+          tags: [["e", form.eventId!]],
+        };
+      }
+    }
+
+    // TODO: Add content examples to the campaign
+
     const draft = await factory.build({
       kind: KINDS.CAMPAIGN,
-      content: "",
+      content: JSON.stringify({
+        description: form.description,
+        give: {
+          type: "cashu",
+          ...(form.mints && form.mints.length > 0 ? { mint: form.mints } : {}),
+        },
+        take: {
+          type: "nostr",
+          template,
+        },
+      }),
       created_at,
       tags: [
         ["d", created_at.toString()],
         ...(form.title ? [["title", form.title]] : []),
-        ["brief", form.brief],
         ["k", form.kind.toString()],
-        ["paymentMethod", "cashu"],
-        ...form.mints.map((mint) => ["mint", mint]),
         ...form.topics.map((topic) => ["t", topic]),
-        ["status", "active"],
+        ["s", "open"],
+      ],
+    });
+
+    yield await factory.sign(draft);
+  };
+}
+
+// Delete a campaign
+export function DeleteCampaign(identifier: string): Action {
+  const account = from(accounts.active$);
+
+  return async function* ({ factory }) {
+    const created_at = Math.floor(Date.now() / 1000);
+    const a = `${KINDS.CAMPAIGN}:${account()?.pubkey}:${identifier}`;
+
+    const draft = await factory.build({
+      kind: KINDS.DELETION,
+      content: "",
+      created_at,
+      tags: [
+        ["a", a],
+        ["k", KINDS.CAMPAIGN.toString()],
       ],
     });
 

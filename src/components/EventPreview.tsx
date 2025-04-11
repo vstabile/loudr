@@ -15,11 +15,16 @@ function formatNoteContent(note: NostrEvent) {
     note.content
       // Handle line breaks
       .replace(/\n/g, "<br />")
-      // Handle URLs
+      // Handle URLs - limit display length to 40 chars
+      .replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline max-w-full inline-block text-ellipsis overflow-hidden">${url}</a>`;
+      })
+      // Handle nostr:<bech32> references
       .replace(
-        /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g,
-        (url) =>
-          `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${url}</a>`
+        /nostr:([a-z0-9]+1[023456789acdefghjklmnpqrstuvwxyz]+)/g,
+        (match, bech32) => {
+          return `<a href="https://njump.me/${bech32}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${match}</a>`;
+        }
       )
       // Handle hashtags
       .replace(
@@ -30,6 +35,7 @@ function formatNoteContent(note: NostrEvent) {
 }
 
 export default function EventPreview(props: EventPreviewProps) {
+  console.log(props.event);
   const [isCollapsed, setIsCollapsed] = createSignal(true);
   const [needsExpansion, setNeedsExpansion] = createSignal(false);
   let contentRef: HTMLDivElement | undefined;
@@ -89,9 +95,13 @@ export default function EventPreview(props: EventPreviewProps) {
           )}
         </div>
       </div>
-      <div class="flex flex-col gap-2 text-xs" ref={contentRef}>
+      <div class="flex flex-col gap-2 text-xs w-full" ref={contentRef}>
         {props.event ? (
-          <div innerHTML={formatNoteContent(props.event)} />
+          <div
+            innerHTML={formatNoteContent(props.event)}
+            class="w-full break-words overflow-hidden whitespace-pre-wrap max-w-full overflow-wrap-anywhere"
+            style="word-break: break-word;"
+          />
         ) : (
           <Skeleton class="flex w-full" height={48} radius={10} />
         )}

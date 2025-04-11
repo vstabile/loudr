@@ -33,7 +33,7 @@ export default function CreateCampaign() {
     validate: zodForm(campaignSchema),
     initialValues: {
       title: "",
-      brief: "",
+      description: "",
       kind: undefined,
       eventId: undefined,
       reaction: "+",
@@ -85,13 +85,13 @@ export default function CreateCampaign() {
                 )}
               </Field>
 
-              <Field name="brief">
+              <Field name="description">
                 {(field, props) => (
                   <div class="mb-2">
                     <TextField>
                       <TextFieldTextArea
                         {...props}
-                        id="brief"
+                        id="description"
                         value={field.value || ""}
                         placeholder="A brief of the campaign outlining the goals, target audience, and any specific requirements"
                       />

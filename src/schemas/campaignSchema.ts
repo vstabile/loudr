@@ -16,7 +16,7 @@ export const topicSchema = z
 export const campaignSchema = z
   .object({
     title: z.string().optional(),
-    brief: z.string().min(1, "Brief is required"),
+    description: z.string().min(1, "Brief is required"),
     kind: z
       .number({
         required_error: "The sponsored event kind is required",

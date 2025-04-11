@@ -13,7 +13,9 @@ rxNostr.setDefaultRelays([
 ]);
 
 export const KINDS = {
-  CAMPAIGN: 30455,
-  PROPOSAL: 10455,
-  AGREEMENT: 10052,
+  CAMPAIGN: 30456,
+  PROPOSAL: 455,
+  NONCE: 456,
+  ADAPTOR: 457,
+  DELETION: 5,
 };

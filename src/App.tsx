@@ -38,7 +38,7 @@ function App() {
       eventStore.add(event);
     });
 
-    rxReq.emit({ kinds: [KINDS.CAMPAIGN] });
+    rxReq.emit({ kinds: [KINDS.CAMPAIGN], since: 1744366398 });
   });
 
   return (

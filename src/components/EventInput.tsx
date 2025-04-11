@@ -21,7 +21,7 @@ type EventInputProps = {
 const defaultProps = {
   label: "",
   description: "",
-  placeholder: "Event ID, nevent or URL",
+  placeholder: "Event ID, nevent, naddr or URL",
 };
 
 function parseEventId(value: string): string | undefined {
@@ -31,18 +31,21 @@ function parseEventId(value: string): string | undefined {
       return value;
     }
 
-    // Case 2: nevent string
-    if (value.startsWith("nevent1")) {
+    // Case 2: nevent or naddr string
+    if (value.startsWith("nevent1") || value.startsWith("naddr1")) {
       const decoded = nip19.decode(value);
-      if (decoded.type !== "nevent") return;
-
-      const eventId = decoded.data.id;
-      if (eventIdSchema.safeParse(eventId).success) {
-        return decoded.data.id;
+      if (decoded.type === "nevent") {
+        const eventId = decoded.data.id;
+        if (eventIdSchema.safeParse(eventId).success) {
+          return decoded.data.id;
+        }
+      } else if (decoded.type === "naddr") {
+        const data = decoded.data;
+        return `${data.kind}:${data.pubkey}:${data.identifier}`;
       }
     }
 
-    // Case 3: URL containing event ID or nevent
+    // Case 3: URL containing event ID, nevent or naddress
     if (value.startsWith("http")) {
       const urlResult = eventUrlSchema.safeParse(value);
       if (urlResult.success) {
@@ -54,13 +57,19 @@ function parseEventId(value: string): string | undefined {
           return lastSegment;
         }
 
-        if (lastSegment.startsWith("nevent1")) {
+        if (
+          lastSegment.startsWith("nevent1") ||
+          lastSegment.startsWith("naddr1")
+        ) {
           const decoded = nip19.decode(lastSegment);
-          if (decoded.type !== "nevent") return;
-
-          const eventId = decoded.data.id;
-          if (eventIdSchema.safeParse(eventId).success) {
-            return decoded.data.id;
+          if (decoded.type === "nevent") {
+            const eventId = decoded.data.id;
+            if (eventIdSchema.safeParse(eventId).success) {
+              return decoded.data.id;
+            }
+          } else if (decoded.type === "naddr") {
+            const data = decoded.data;
+            return `${data.kind}:${data.pubkey}:${data.identifier}`;
           }
         }
       }
@@ -68,6 +77,7 @@ function parseEventId(value: string): string | undefined {
 
     return undefined;
   } catch (error) {
+    console.error("Error parsing event ID", error);
     return undefined;
   }
 }

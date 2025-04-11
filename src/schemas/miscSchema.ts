@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-export const eventIdSchema = z
-  .string()
-  .length(64, "Event ID must be 64 characters long")
-  .regex(/^[0-9a-f]+$/i, "Event ID must be a valid hexadecimal string");
 export const pubkeySchema = z
   .string()
   .length(64)
@@ -13,11 +9,43 @@ export const kindSchema = z.number().int().min(0).max(65535);
 export const tagSchema = z.array(z.string());
 export const tagsSchema = z.array(tagSchema);
 
+export const eventCoordinateSchema = z.string().refine(
+  (value) => {
+    const parts = value.split(":");
+    if (parts.length !== 3) return false;
+
+    const [kind, pubkey, identifier] = parts;
+    return (
+      kindSchema.safeParse(parseInt(kind)).success &&
+      pubkeySchema.safeParse(pubkey).success &&
+      identifier.length > 0
+    );
+  },
+  {
+    message: "Must be in the format <kind>:<pubkey>:<identifier>",
+  }
+);
+
+export const eventIdSchema = z.union([
+  z
+    .string()
+    .length(64, "Event ID must be 64 characters long")
+    .regex(/^[0-9a-f]+$/i, "Event ID must be a valid hexadecimal string"),
+  eventCoordinateSchema,
+]);
+
 export const neventSchema = z
   .string()
   .regex(
     /^nevent1[023456789acdefghjklmnpqrstuvwxyz]+$/,
     "Must be a valid bech32 nevent string"
+  );
+
+export const naddrSchema = z
+  .string()
+  .regex(
+    /^naddr1[023456789acdefghjklmnpqrstuvwxyz]+$/,
+    "Must be a valid bech32 naddr string"
   );
 
 export const eventUrlSchema = z.string().refine(
@@ -35,6 +63,11 @@ export const eventUrlSchema = z.string().refine(
 
       // Check if it's a bech32 nevent
       if (neventSchema.safeParse(lastSegment).success) {
+        return true;
+      }
+
+      // Check if it's a bech32 naddr
+      if (naddrSchema.safeParse(lastSegment).success) {
         return true;
       }
 

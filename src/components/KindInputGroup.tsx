@@ -11,7 +11,7 @@ import EventInput, { toEventId } from "./EventInput";
 import { CampaignForm } from "../schemas/campaignSchema";
 import { TextField, TextFieldTextArea } from "./ui/text-field";
 import { eventTemplate } from "../schemas/miscSchema";
-import { eventLoader } from "../loaders";
+import { eventLoader, replaceableLoader } from "../loaders";
 import { queryStore } from "../stores";
 import { of } from "rxjs";
 import { NostrEvent } from "nostr-tools";
@@ -21,6 +21,12 @@ import EmojiPicker from "./EmojiPicker";
 
 type KindInputGroupProps = {
   form: FormStore<CampaignForm>;
+};
+
+export type EventCoordinates = {
+  kind: number;
+  pubkey: string;
+  identifier: string;
 };
 
 export default function KindInputGroup(props: KindInputGroupProps) {
@@ -56,16 +62,44 @@ export default function KindInputGroup(props: KindInputGroupProps) {
 
         createEffect(() => {
           const eventId = getValue(props.form, "eventId");
+          if (!eventId) return;
 
-          if (eventId) {
+          const coordinates = eventId?.split(":");
+
+          if (coordinates && coordinates.length === 3) {
+            replaceableLoader.next({
+              kind: parseInt(coordinates[0]),
+              pubkey: coordinates[1],
+              identifier: coordinates[2],
+            });
+          } else {
             eventLoader.next({ id: eventId });
           }
         });
 
-        const nostrEventId = createMemo(() => getValue(props.form, "eventId"));
+        const nostrEventId = createMemo(() => {
+          const eventId = getValue(props.form, "eventId");
+          const coordinates = eventId?.split(":");
+          if (coordinates && coordinates.length === 3) {
+            return {
+              kind: parseInt(coordinates[0]),
+              pubkey: coordinates[1],
+              identifier: coordinates[2],
+            };
+          }
+          return eventId;
+        });
 
         const nostrEvent = from<NostrEvent>(
-          nostrEventId() ? queryStore.event(nostrEventId()!) : of(undefined)
+          nostrEventId()
+            ? typeof nostrEventId() === "string"
+              ? queryStore.event(nostrEventId() as string)
+              : queryStore.replaceable(
+                  (nostrEventId() as EventCoordinates).kind,
+                  (nostrEventId() as EventCoordinates).pubkey,
+                  (nostrEventId() as EventCoordinates).identifier
+                )
+            : of(undefined)
         );
 
         function formatContent(
