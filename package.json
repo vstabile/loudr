@@ -1,0 +1,41 @@
+{
+  "name": "loudr",
+  "description": "Reference client implementation that uses Atomic Signature Swaps over Nostr for sponsoring the publication of events in exchange for Cashu payments",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@kobalte/core": "^0.13.9",
+    "@modular-forms/solid": "^0.25.1",
+    "applesauce-accounts": "^0.12.0",
+    "applesauce-actions": "^0.12.0",
+    "applesauce-factory": "^0.12.2",
+    "applesauce-loaders": "^0.12.0",
+    "applesauce-signers": "^0.12.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-solid": "^0.485.0",
+    "rx-nostr": "^3.6.1",
+    "rxjs": "^7.8.2",
+    "solid-js": "^1.9.5",
+    "tailwind-merge": "^3.2.0",
+    "tailwindcss-animate": "^1.0.7",
+    "unicode-emoji-json": "^0.8.0",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.7.3",
+    "vite": "^6.2.6",
+    "vite-plugin-solid": "^2.11.6"
+  }
+}
