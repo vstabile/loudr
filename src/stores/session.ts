@@ -1,5 +1,5 @@
 import { createStore } from "solid-js/store";
-import { signIn } from "../lib/signIn";
+import { signIn } from "../lib/signIn-bk";
 import { waitForNip07 } from "../lib/utils";
 
 type Session = {
@@ -49,7 +49,5 @@ const restoreSession = async () => {
 
   await signIn(storedSession.method, storedSession.nsec || undefined);
 };
-
-restoreSession();
 
 export { session, saveSession, clearSession, restoreSession };

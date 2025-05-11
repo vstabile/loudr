@@ -1,9 +1,9 @@
 import { createEffect, createSignal, Show } from "solid-js";
-import { queryStore } from "../stores";
+import { queryStore } from "../stores/queryStore";
 import { Skeleton } from "./ui/skeleton";
 import { NostrEvent } from "nostr-tools";
 import { truncatedNpub, formatDate, fromReactive } from "../lib/utils";
-import { replaceableLoader } from "../loaders";
+import { replaceableLoader } from "../lib/loaders";
 import { LucideChevronDown, LucideChevronUp } from "lucide-solid";
 import { EMPTY } from "rxjs";
 type EventPreviewProps = {

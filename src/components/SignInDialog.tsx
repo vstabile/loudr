@@ -6,9 +6,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-import { signIn } from "../lib/signIn";
+import { signIn } from "../lib/signIn-bk";
 import { Button } from "./ui/button";
-import { accounts } from "../accounts";
+import { accounts } from "../lib/accounts";
 import { saveSession } from "../stores/session";
 import { TextField, TextFieldInput } from "./ui/text-field";
 import { nip19 } from "nostr-tools";
@@ -20,13 +20,12 @@ export default function SignInDialog(props: SignInDialogProps) {
   const [nsec, setNsec] = createSignal<string | null>(null);
 
   const nsecIsValid = createMemo(() => {
-    const value = nsec();
-    if (!value) return false;
+    if (!nsec()) return false;
 
     try {
-      const decoded = nip19.decode(value);
-      return decoded.type === "nsec" ? true : false;
-    } catch (error) {
+      const decoded = nip19.decode(nsec()!);
+      return decoded.type === "nsec";
+    } catch {
       return false;
     }
   });

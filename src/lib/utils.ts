@@ -1,16 +1,28 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { nip19 } from "nostr-tools";
-import { createEffect, createSignal, onCleanup } from "solid-js";
+import { createEffect, createSignal, from, onCleanup } from "solid-js";
 import { Observable, Subscription } from "rxjs";
+import { ProfileContent } from "applesauce-core/helpers";
+import { queryStore } from "../stores/queryStore";
+import { ProfileQuery } from "applesauce-core/queries";
+import { replaceableLoader } from "./loaders";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function truncate(value: string, length: number = 15) {
+  if (value.length <= length) {
+    return value;
+  }
+
+  return value.slice(0, length - 5) + "..." + value.slice(-5);
+}
+
 export function truncatedNpub(pubkey: string) {
   const npub = pubkey.startsWith("npub1") ? pubkey : nip19.npubEncode(pubkey);
-  return npub.slice(0, 8) + "..." + npub.slice(-5);
+  return truncate(npub);
 }
 
 export function formatDate(timestamp: number): string {
@@ -67,4 +79,44 @@ export function fromReactive<T>(getObservable: () => Observable<T>) {
   });
 
   return value;
+}
+
+export function profileName(
+  profile: ProfileContent | undefined,
+  pubkey: string
+) {
+  return profile?.display_name || profile?.name || truncatedNpub(pubkey);
+}
+
+export function formatContent(content: string) {
+  return content.replace(/nostr:npub1[a-zA-Z0-9]+/g, (match) => {
+    const [npubProfiles, setNpubProfiles] = createSignal(
+      new Map<string, ProfileContent | undefined>()
+    );
+    const npubMatches = content.match(/nostr:npub1[a-zA-Z0-9]+/g) || [];
+
+    for (const match of npubMatches) {
+      const npub = match.replace("nostr:", "");
+      try {
+        const pubkey = nip19.decode(npub).data as string;
+        const profile = from(queryStore.createQuery(ProfileQuery, pubkey));
+
+        replaceableLoader.next({
+          pubkey,
+          kind: 0,
+        });
+
+        // Store the profile in our map
+        setNpubProfiles((prev) => new Map(prev).set(npub, profile()));
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    const npub = match.replace("nostr:", "");
+    const profile = npubProfiles().get(npub);
+    const displayName = truncate(profileName(profile, npub));
+
+    return `<a href="https://njump.me/${npub}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${displayName}</a>`;
+  });
 }

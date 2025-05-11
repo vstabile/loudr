@@ -1,10 +1,6 @@
-import { EventFactory } from "applesauce-factory";
-import { Action, ActionHub } from "applesauce-actions";
-import { eventStore } from "./stores";
-import { accounts } from "./accounts";
-import { CampaignForm } from "./schemas/campaignSchema";
-import { KINDS } from "./nostr";
-import { from } from "solid-js";
+import { Action } from "applesauce-actions";
+import { CampaignForm } from "../schemas/campaignSchema";
+import { KINDS } from "../lib/nostr";
 
 type PartialTemplate = {
   kind: number;
@@ -13,17 +9,8 @@ type PartialTemplate = {
   created_at?: number;
 };
 
-// The event factory is used to build and modify nostr events
-export const factory = new EventFactory({
-  // accounts.signer is a NIP-07 signer that signs with the currently active account
-  signer: accounts.signer,
-});
-
-// The action hub is used to run Actions against the event store
-export const actions = new ActionHub(eventStore, factory);
-
 // An action that creates a new kind 30050 campaign event
-export function Campaign(form: CampaignForm): Action {
+export function CreateCampaign(form: CampaignForm): Action {
   return async function* ({ factory }) {
     const created_at = Math.floor(Date.now() / 1000);
 
@@ -79,28 +66,6 @@ export function Campaign(form: CampaignForm): Action {
         ["k", form.kind.toString()],
         ...form.topics.map((topic) => ["t", topic]),
         ["s", "open"],
-      ],
-    });
-
-    yield await factory.sign(draft);
-  };
-}
-
-// Delete a campaign
-export function DeleteCampaign(identifier: string): Action {
-  const account = from(accounts.active$);
-
-  return async function* ({ factory }) {
-    const created_at = Math.floor(Date.now() / 1000);
-    const a = `${KINDS.CAMPAIGN}:${account()?.pubkey}:${identifier}`;
-
-    const draft = await factory.build({
-      kind: KINDS.DELETION,
-      content: "",
-      created_at,
-      tags: [
-        ["a", a],
-        ["k", KINDS.CAMPAIGN.toString()],
       ],
     });
 

@@ -7,12 +7,11 @@ import {
   CardTitle,
 } from "./ui/card";
 import { createEffect, createMemo, For, from, Show } from "solid-js";
-import { eventStore, queryStore } from "../stores";
 import { ProfileQuery } from "applesauce-core/queries";
 import { truncatedNpub } from "../lib/utils";
-import { eventLoader, replaceableLoader } from "../loaders";
+import { eventLoader, replaceableLoader } from "../lib/loaders";
 import { Badge } from "./ui/badge";
-import { accounts } from "../accounts";
+import { accounts } from "../lib/accounts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,13 +19,16 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { LucideEllipsis, LucideRepeat2, LucideTrash } from "lucide-solid";
-import { actions, DeleteCampaign } from "../actions";
+import { actions } from "../actions/hub";
+import { DeleteCampaign } from "../actions/deleteCampaign";
 import { rxNostr } from "../nostr";
 import EventPreview from "./EventPreview";
 import { EventCoordinates } from "./KindInputGroup";
 import { of } from "rxjs";
 import { Button } from "./ui/button";
 import { createSignal } from "solid-js";
+import { queryStore } from "../stores/queryStore";
+import { eventStore } from "../stores/eventStore";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);

@@ -1,15 +1,25 @@
 import { switchMap } from "rxjs";
-import { accounts } from "./accounts";
+import { accounts } from "./lib/accounts";
 import "./App.css";
 import Navbar from "./components/Navbar";
-import { eventStore, queryStore } from "./stores";
 import { For, from, onMount } from "solid-js";
 import { KINDS, rxNostr } from "./nostr";
 import { createRxForwardReq } from "rx-nostr";
 import CampaignCard from "./components/CampaignCard";
 import { restoreSession } from "./stores/session";
+import { eventStore } from "./stores/eventStore";
+import { queryStore } from "./stores/queryStore";
+import { AuthProvider } from "./components/AuthProvider";
 
 function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+function AppContent() {
   // subscribe to the active account, then subscribe to the active campaigns or undefined
   const campaigns = from(
     accounts.active$.pipe(

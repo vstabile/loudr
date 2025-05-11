@@ -1,4 +1,4 @@
-import { accounts } from "../accounts";
+import { accounts } from "../lib/accounts";
 import { from } from "solid-js";
 import User from "./User";
 import { Button } from "./ui/button";

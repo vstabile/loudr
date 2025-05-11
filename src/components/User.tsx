@@ -6,10 +6,10 @@ import {
   Match,
   Switch,
 } from "solid-js";
-import { accounts } from "../accounts";
-import { replaceableLoader } from "../loaders";
+import { accounts } from "../lib/accounts";
+import { replaceableLoader } from "../lib/loaders";
 import { of, switchMap } from "rxjs";
-import { queryStore } from "../stores";
+import { queryStore } from "../stores/queryStore";
 import { ProfileQuery } from "applesauce-core/queries";
 import {
   DropdownMenu,
