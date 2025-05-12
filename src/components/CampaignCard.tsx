@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import {
+  LucideCirclePause,
   LucideEllipsis,
   LucideNewspaper,
   LucideRepeat2,
@@ -27,12 +28,11 @@ import {
 } from "lucide-solid";
 import { actions } from "../actions/hub";
 import { DeleteCampaign } from "../actions/deleteCampaign";
-import { rxNostr } from "../lib/nostr";
+import { CloseCampaign } from "../actions/closeCampaign";
 import EventPreview from "./EventPreview";
 import { Button } from "./ui/button";
 import { createSignal } from "solid-js";
 import { queryStore } from "../stores/queryStore";
-import { eventStore } from "../stores/eventStore";
 import { getTagValue } from "applesauce-core/helpers";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
@@ -43,7 +43,6 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
   );
 
   const content = createMemo(() => {
-    console.log("props.campaign", props.campaign);
     try {
       return JSON.parse(props.campaign.content);
     } catch (error) {
@@ -71,16 +70,17 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     const identifier = props.campaign.tags.find((t) => t[0] === "d")?.[1];
     if (!identifier) return;
 
-    await actions
-      .exec(DeleteCampaign, identifier)
-      .forEach((event: NostrEvent) => {
-        eventStore.add(event);
-        rxNostr.send(event);
-      });
+    await actions.run(DeleteCampaign, identifier);
+  };
+
+  const closeCampaign = async () => {
+    const identifier = props.campaign.tags.find((t) => t[0] === "d")?.[1];
+    if (!identifier) return;
+
+    await actions.run(CloseCampaign, props.campaign);
   };
 
   const nostrEventId = createMemo(() => {
-    console.log("content", content());
     if (!content().take.template.tags) return;
     return getTagValue(content().take.template, "e");
   });
@@ -103,6 +103,10 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
                 <LucideEllipsis class="w-4 h-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent class="bg-white">
+                <DropdownMenuItem onClick={closeCampaign}>
+                  <LucideCirclePause class="w-4 h-4" />
+                  Close Campaign
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={deleteCampaign} class="text-red-600">
                   <LucideTrash class="w-4 h-4" />
                   Delete
@@ -181,9 +185,13 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
         </div>
       </CardContent>
       <CardFooter class="flex flex-row justify-between pb-4">
-        <Button variant="link" size="sm">
-          Ignore
-        </Button>
+        <div>
+          {props.campaign.pubkey !== account()?.pubkey && (
+            <Button variant="link" size="sm">
+              Ignore
+            </Button>
+          )}
+        </div>
         <Button size="sm">Send a Proposal</Button>
       </CardFooter>
     </Card>

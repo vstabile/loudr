@@ -34,15 +34,10 @@ export default function EventPreview(props: { id?: string }) {
         coordinates[2]
       );
     } else {
-      console.log("eventLoader", props.id);
       eventLoader.next({ id: props.id, relays: RELAYS });
 
       return queryStore.event(props.id);
     }
-  });
-
-  createEffect(() => {
-    console.log("nostrEvent", nostrEvent());
   });
 
   const profile = fromReactive(() =>

@@ -43,7 +43,7 @@ function AppContent() {
     });
 
     rxReq.emit([
-      { kinds: [KINDS.CAMPAIGN] },
+      { kinds: [KINDS.CAMPAIGN], "#s": ["open"] },
       { kinds: [KINDS.DELETION], "#k": [KINDS.CAMPAIGN.toString()] },
     ]);
   });

@@ -18,11 +18,8 @@ import {
 import { Button } from "./ui/button";
 import { TextField, TextFieldInput, TextFieldTextArea } from "./ui/text-field";
 import { CampaignForm, campaignSchema } from "../schemas/campaignSchema";
-import { eventStore } from "../stores/eventStore";
-import { rxNostr } from "../lib/nostr";
 import { actions } from "../actions/hub";
 import { CreateCampaign as CreateCampaignAction } from "../actions/createCampaign";
-import { NostrEvent } from "nostr-tools";
 import { TopicsInput } from "./TopicsInput";
 import { MintsInput } from "./MintsInput";
 import KindInputGroup from "./KindInputGroup";
@@ -45,12 +42,7 @@ export default function CreateCampaign() {
   });
 
   const handleSubmit: SubmitHandler<CampaignForm> = async (values) => {
-    await actions
-      .exec(CreateCampaignAction, values)
-      .forEach((event: NostrEvent) => {
-        eventStore.add(event);
-        rxNostr.send(event);
-      });
+    await actions.run(CreateCampaignAction, values);
 
     reset(form);
     setIsOpen(false);
