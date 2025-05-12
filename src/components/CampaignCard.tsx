@@ -27,7 +27,7 @@ import {
 } from "lucide-solid";
 import { actions } from "../actions/hub";
 import { DeleteCampaign } from "../actions/deleteCampaign";
-import { rxNostr } from "../nostr";
+import { rxNostr } from "../lib/nostr";
 import EventPreview from "./EventPreview";
 import { Button } from "./ui/button";
 import { createSignal } from "solid-js";

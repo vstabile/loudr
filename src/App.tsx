@@ -3,7 +3,7 @@ import { accounts } from "./lib/accounts";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import { For, from, onMount } from "solid-js";
-import { KINDS, rxNostr } from "./nostr";
+import { KINDS, rxNostr } from "./lib/nostr";
 import { createRxForwardReq } from "rx-nostr";
 import CampaignCard from "./components/CampaignCard";
 import { eventStore } from "./stores/eventStore";

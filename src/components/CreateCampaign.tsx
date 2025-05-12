@@ -19,7 +19,7 @@ import { Button } from "./ui/button";
 import { TextField, TextFieldInput, TextFieldTextArea } from "./ui/text-field";
 import { CampaignForm, campaignSchema } from "../schemas/campaignSchema";
 import { eventStore } from "../stores/eventStore";
-import { rxNostr } from "../nostr";
+import { rxNostr } from "../lib/nostr";
 import { actions } from "../actions/hub";
 import { CreateCampaign as CreateCampaignAction } from "../actions/createCampaign";
 import { NostrEvent } from "nostr-tools";
