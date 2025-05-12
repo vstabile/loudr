@@ -61,11 +61,11 @@ export default function RemoteSignerDialog(props: RemoteSignerDialogProps) {
       <DialogTitle class="text-center">Sign In with Remote Signer</DialogTitle>
       <div class="flex flex-col items-center">
         <QRCode data={nostrConnectUri() || ""} width={240} height={240} />
-        <div class="flex flex-row w-[240px] pt-0 p-2 gap-2">
+        <div class="flex flex-row w-[240px] pt-2 gap-2">
           <TextField class="flex w-full">
             <TextFieldInput
               type="text"
-              class=" bg-white text-gray-600 h-8"
+              class="h-8"
               placeholder="wss://relay.example.com/"
               value={relayUrl()}
               autocomplete="off"
@@ -111,7 +111,6 @@ export default function RemoteSignerDialog(props: RemoteSignerDialogProps) {
           <TextField class="w-full">
             <TextFieldInput
               type="text"
-              class="bg-white"
               placeholder="bunker://..."
               value={bunkerUri()}
               autocomplete="off"

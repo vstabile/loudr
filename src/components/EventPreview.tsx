@@ -64,7 +64,7 @@ export default function EventPreview(props: { id?: string }) {
     <div
       class={
         (isCollapsed() ? "max-h-40 overflow-hidden" : "") +
-        " relative flex flex-col border mt-2 py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full"
+        " relative flex flex-col border mt-2 py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full dark:bg-gray-800 dark:border-gray-700"
       }
     >
       <div class="flex justify-between">
@@ -110,7 +110,7 @@ export default function EventPreview(props: { id?: string }) {
 
       <Show when={nostrEvent() && needsExpansion()}>
         <div
-          class="absolute text-gray-400 left-0 bottom-0 bg-gradient-to-b from-transparent via-background to-background w-full flex justify-center items-center cursor-pointer rounded-md pb-1"
+          class="absolute text-gray-400 left-0 bottom-0 bg-gradient-to-b from-transparent via-background to-background dark:via-gray-800 dark:to-gray-800 w-full flex justify-center items-center cursor-pointer rounded-md pb-1"
           onClick={() => setIsCollapsed(!isCollapsed())}
         >
           {isCollapsed() ? (

@@ -53,7 +53,7 @@ export default function CreateCampaign() {
       <DialogTrigger>
         <Button variant="link">Create Campaign</Button>
       </DialogTrigger>
-      <DialogContent class="bg-white">
+      <DialogContent>
         <Form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>New Campaign</DialogTitle>
