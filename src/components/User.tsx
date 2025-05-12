@@ -22,22 +22,11 @@ import {
 import Settings from "./Settings";
 import { LucideSettings, LucideLogOut } from "lucide-solid";
 import { truncatedNpub } from "../lib/utils";
-import { clearSession } from "../stores/session";
+import { useAuth } from "../contexts/authContext";
 
 export default function User() {
   const account = from(accounts.active$);
-
-  const signout = () => {
-    // do nothing if the user is not signed in
-    if (!accounts.active) return;
-
-    // signout the user
-    const account = accounts.active;
-    accounts.removeAccount(account);
-    accounts.clearActive();
-
-    clearSession();
-  };
+  const { signOut } = useAuth();
 
   // fetch the user's profile when they sign in
   createEffect(async () => {
@@ -122,7 +111,7 @@ export default function User() {
             <LucideSettings class="w-4 h-4 text-gray-600" />
             Settings
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={signout}>
+          <DropdownMenuItem onClick={signOut}>
             <LucideLogOut class="w-4 h-4 text-gray-600" />
             Sign Out
           </DropdownMenuItem>

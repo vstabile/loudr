@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { nip19 } from "nostr-tools";
+import { nip19, NostrEvent } from "nostr-tools";
 import { createEffect, createSignal, from, onCleanup } from "solid-js";
 import { Observable, Subscription } from "rxjs";
 import { ProfileContent } from "applesauce-core/helpers";
@@ -119,4 +119,28 @@ export function formatContent(content: string) {
 
     return `<a href="https://njump.me/${npub}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${displayName}</a>`;
   });
+}
+
+export function formatNoteContent(note: NostrEvent) {
+  return (
+    note.content
+      // Handle line breaks
+      .replace(/\n/g, "<br />")
+      // Handle URLs - limit display length to 40 chars
+      .replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, (url: string) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline max-w-full inline-block text-ellipsis overflow-hidden">${url}</a>`;
+      })
+      // Handle nostr:<bech32> references
+      .replace(
+        /nostr:([a-z0-9]+1[023456789acdefghjklmnpqrstuvwxyz]+)/g,
+        (match: string, bech32: string) => {
+          return `<a href="https://njump.me/${bech32}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${match}</a>`;
+        }
+      )
+      // Handle hashtags
+      .replace(
+        /#[\w\u0590-\u05ff]+/g,
+        (tag) => `<span class="text-primary">${tag}</span>`
+      )
+  );
 }

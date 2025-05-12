@@ -6,7 +6,6 @@ import { For, from, onMount } from "solid-js";
 import { KINDS, rxNostr } from "./nostr";
 import { createRxForwardReq } from "rx-nostr";
 import CampaignCard from "./components/CampaignCard";
-import { restoreSession } from "./stores/session";
 import { eventStore } from "./stores/eventStore";
 import { queryStore } from "./stores/queryStore";
 import { AuthProvider } from "./components/AuthProvider";
@@ -34,16 +33,17 @@ function AppContent() {
   );
 
   onMount(async () => {
-    await restoreSession();
     // Subscribe to campaign events
     const rxReq = createRxForwardReq();
 
     rxNostr.use(rxReq).subscribe(({ event }) => {
-      eventStore.add(event);
+      try {
+        eventStore.add(event);
+      } catch {}
     });
 
     rxReq.emit([
-      { kinds: [KINDS.CAMPAIGN], since: 1744366398 },
+      { kinds: [KINDS.CAMPAIGN] },
       { kinds: [KINDS.DELETION], "#k": [KINDS.CAMPAIGN.toString()] },
     ]);
   });

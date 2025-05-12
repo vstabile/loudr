@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, from, Show } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
 import KindInput from "./KindInput";
 import {
   Field,
@@ -11,10 +11,6 @@ import EventInput, { toEventId } from "./EventInput";
 import { CampaignForm } from "../schemas/campaignSchema";
 import { TextField, TextFieldTextArea } from "./ui/text-field";
 import { eventTemplate } from "../schemas/miscSchema";
-import { eventLoader, replaceableLoader } from "../lib/loaders";
-import { queryStore } from "../stores/queryStore";
-import { of } from "rxjs";
-import { NostrEvent } from "nostr-tools";
 import EventPreview from "./EventPreview";
 import { LucideRepeat2 } from "lucide-solid";
 import EmojiPicker from "./EmojiPicker";
@@ -60,47 +56,7 @@ export default function KindInputGroup(props: KindInputGroupProps) {
 
         const contentError = createMemo(() => getError(props.form, "content"));
 
-        createEffect(() => {
-          const eventId = getValue(props.form, "eventId");
-          if (!eventId) return;
-
-          const coordinates = eventId?.split(":");
-
-          if (coordinates && coordinates.length === 3) {
-            replaceableLoader.next({
-              kind: parseInt(coordinates[0]),
-              pubkey: coordinates[1],
-              identifier: coordinates[2],
-            });
-          } else {
-            eventLoader.next({ id: eventId });
-          }
-        });
-
-        const nostrEventId = createMemo(() => {
-          const eventId = getValue(props.form, "eventId");
-          const coordinates = eventId?.split(":");
-          if (coordinates && coordinates.length === 3) {
-            return {
-              kind: parseInt(coordinates[0]),
-              pubkey: coordinates[1],
-              identifier: coordinates[2],
-            };
-          }
-          return eventId;
-        });
-
-        const nostrEvent = from<NostrEvent>(
-          nostrEventId()
-            ? typeof nostrEventId() === "string"
-              ? queryStore.event(nostrEventId() as string)
-              : queryStore.replaceable(
-                  (nostrEventId() as EventCoordinates).kind,
-                  (nostrEventId() as EventCoordinates).pubkey,
-                  (nostrEventId() as EventCoordinates).identifier
-                )
-            : of(undefined)
-        );
+        const nostrEventId = createMemo(() => getValue(props.form, "eventId"));
 
         function formatContent(
           kind?: number,
@@ -239,7 +195,7 @@ export default function KindInputGroup(props: KindInputGroupProps) {
               </TextField>
             </Show>
             <Show when={nostrEventId()}>
-              <EventPreview event={nostrEvent()} />
+              <EventPreview id={nostrEventId()} />
             </Show>
             {field.error && (
               <p class="text-red-500 text-xs ml-0.5 mt-1 w-full">

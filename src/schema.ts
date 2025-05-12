@@ -51,6 +51,44 @@ const proposalTagsSchema = z.array(z.array(z.string())).refine(
   }
 );
 
+const campaignContentSchema = z.object({
+  description: z.string(),
+});
+
+const campaignTagsSchema = z.array(z.array(z.string())).refine(
+  (tags) => {
+    const dTag = tags.find((tag) => tag[0] === "d");
+    const sTag = tags.find((tag) => tag[0] === "s");
+    const kTag = tags.find((tag) => tag[0] === "k");
+    return (
+      dTag !== undefined &&
+      sTag !== undefined &&
+      kTag !== undefined &&
+      parseInt(kTag[1]) > 0 &&
+      ["draft", "open", "closed"].includes(sTag[1])
+    );
+  },
+  {
+    message: "Must contain 'd', 's' and 'k' tags with valid values",
+  }
+);
+
+export const campaignEventSchema = z.object({
+  kind: z.literal(KINDS.CAMPAIGN),
+  pubkey: z.string().length(64),
+  content: z.string().transform((str) => {
+    try {
+      return campaignContentSchema.parse(JSON.parse(str));
+    } catch (e) {
+      throw new Error("Invalid content format");
+    }
+  }),
+  tags: campaignTagsSchema,
+  created_at: z.number(),
+  id: z.string().length(64),
+  sig: z.string().length(128),
+});
+
 // Complete Event Schema
 export const proposalEventSchema = z.object({
   kind: z.literal(KINDS.PROPOSAL),

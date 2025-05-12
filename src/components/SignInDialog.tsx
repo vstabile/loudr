@@ -6,17 +6,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-import { signIn } from "../lib/signIn-bk";
 import { Button } from "./ui/button";
-import { accounts } from "../lib/accounts";
-import { saveSession } from "../stores/session";
 import { TextField, TextFieldInput } from "./ui/text-field";
 import { nip19 } from "nostr-tools";
+import { useAuth } from "../contexts/authContext";
+import { AuthMethod } from "../lib/signIn";
 type SignInDialogProps = {
   children: JSX.Element;
 };
 
 export default function SignInDialog(props: SignInDialogProps) {
+  const { signIn } = useAuth();
+
   const [nsec, setNsec] = createSignal<string | null>(null);
 
   const nsecIsValid = createMemo(() => {
@@ -30,18 +31,8 @@ export default function SignInDialog(props: SignInDialogProps) {
     }
   });
 
-  const handleSignIn = async (method: "nip07" | "nsec") => {
-    if (accounts.active) return;
-
-    const account = await signIn(method, nsec() || undefined);
-
-    if (account) {
-      saveSession({
-        method: method,
-        pubkey: account.pubkey,
-        nsec: method === "nsec" ? nsec() : null,
-      });
-    }
+  const handleSignIn = async (method: AuthMethod) => {
+    await signIn(method, nsec() || undefined);
   };
 
   return (

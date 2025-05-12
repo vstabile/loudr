@@ -1,62 +1,68 @@
 import { createEffect, createSignal, Show } from "solid-js";
 import { queryStore } from "../stores/queryStore";
 import { Skeleton } from "./ui/skeleton";
-import { NostrEvent } from "nostr-tools";
-import { truncatedNpub, formatDate, fromReactive } from "../lib/utils";
-import { replaceableLoader } from "../lib/loaders";
+import {
+  truncatedNpub,
+  formatDate,
+  fromReactive,
+  formatNoteContent,
+} from "../lib/utils";
+import { eventLoader, replaceableLoader } from "../lib/loaders";
 import { LucideChevronDown, LucideChevronUp } from "lucide-solid";
 import { EMPTY } from "rxjs";
-type EventPreviewProps = {
-  event: NostrEvent | undefined;
-};
+import { RELAYS } from "../lib/nostr";
 
-function formatNoteContent(note: NostrEvent) {
-  return (
-    note.content
-      // Handle line breaks
-      .replace(/\n/g, "<br />")
-      // Handle URLs - limit display length to 40 chars
-      .replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline max-w-full inline-block text-ellipsis overflow-hidden">${url}</a>`;
-      })
-      // Handle nostr:<bech32> references
-      .replace(
-        /nostr:([a-z0-9]+1[023456789acdefghjklmnpqrstuvwxyz]+)/g,
-        (match, bech32) => {
-          return `<a href="https://njump.me/${bech32}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${match}</a>`;
-        }
-      )
-      // Handle hashtags
-      .replace(
-        /#[\w\u0590-\u05ff]+/g,
-        (tag) => `<span class="text-primary">${tag}</span>`
-      )
-  );
-}
-
-export default function EventPreview(props: EventPreviewProps) {
-  console.log(props.event);
+export default function EventPreview(props: { id?: string }) {
   const [isCollapsed, setIsCollapsed] = createSignal(true);
   const [needsExpansion, setNeedsExpansion] = createSignal(false);
   let contentRef: HTMLDivElement | undefined;
 
-  const profile = fromReactive(() =>
-    props.event ? queryStore.profile(props.event.pubkey) : EMPTY
-  );
+  const nostrEvent = fromReactive(() => {
+    if (!props.id) return EMPTY;
+    const coordinates = props.id.split(":");
+
+    if (coordinates.length === 3) {
+      replaceableLoader.next({
+        kind: parseInt(coordinates[0]),
+        pubkey: coordinates[1],
+        identifier: coordinates[2],
+      });
+
+      return queryStore.replaceable(
+        parseInt(coordinates[0]),
+        coordinates[1],
+        coordinates[2]
+      );
+    } else {
+      console.log("eventLoader", props.id);
+      eventLoader.next({ id: props.id, relays: RELAYS });
+
+      return queryStore.event(props.id);
+    }
+  });
 
   createEffect(() => {
-    if (!props.event) return;
+    console.log("nostrEvent", nostrEvent());
+  });
+
+  const profile = fromReactive(() =>
+    nostrEvent() ? queryStore.profile(nostrEvent()!.pubkey) : EMPTY
+  );
+
+  // Load event author profile
+  createEffect(() => {
+    if (!nostrEvent()) return;
 
     replaceableLoader.next({
-      pubkey: props.event.pubkey,
+      pubkey: nostrEvent()!.pubkey,
       kind: 0,
     });
   });
 
   // Check if content needs expansion button
   createEffect(() => {
-    if (!props.event || !contentRef) return;
-    setNeedsExpansion(contentRef.scrollHeight > 160);
+    if (!nostrEvent() || !contentRef) return;
+    setNeedsExpansion(contentRef.scrollHeight > 45);
   });
 
   return (
@@ -72,14 +78,14 @@ export default function EventPreview(props: EventPreviewProps) {
             <img
               src={
                 profile()!.picture ||
-                "https://robohash.org/" + props.event!.pubkey
+                "https://robohash.org/" + nostrEvent()!.pubkey
               }
               class="h-5 w-5 rounded-full"
             />
             <span class="truncate">
               {profile()!.display_name ||
                 profile()!.name ||
-                truncatedNpub(props.event!.pubkey)}
+                truncatedNpub(nostrEvent()!.pubkey)}
             </span>
           </Show>
           <Show when={!profile()}>
@@ -88,17 +94,17 @@ export default function EventPreview(props: EventPreviewProps) {
           </Show>
         </div>
         <div class="flex text-xs text-gray-400">
-          {props.event ? (
-            formatDate(props.event.created_at)
+          {nostrEvent() ? (
+            formatDate(nostrEvent()!.created_at)
           ) : (
             <Skeleton class="flex" height={16} width={32} radius={10} />
           )}
         </div>
       </div>
       <div class="flex flex-col gap-2 text-xs w-full" ref={contentRef}>
-        {props.event ? (
+        {nostrEvent() ? (
           <div
-            innerHTML={formatNoteContent(props.event)}
+            innerHTML={formatNoteContent(nostrEvent()!)}
             class="w-full break-words overflow-hidden whitespace-pre-wrap max-w-full overflow-wrap-anywhere"
             style="word-break: break-word;"
           />
@@ -107,7 +113,7 @@ export default function EventPreview(props: EventPreviewProps) {
         )}
       </div>
 
-      <Show when={props.event && needsExpansion()}>
+      <Show when={nostrEvent() && needsExpansion()}>
         <div
           class="absolute text-gray-400 left-0 bottom-0 bg-gradient-to-b from-transparent via-background to-background w-full flex justify-center items-center cursor-pointer rounded-md pb-1"
           onClick={() => setIsCollapsed(!isCollapsed())}

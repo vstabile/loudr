@@ -9,7 +9,7 @@ import {
 import { createEffect, createMemo, For, from, Show } from "solid-js";
 import { ProfileQuery } from "applesauce-core/queries";
 import { truncatedNpub } from "../lib/utils";
-import { eventLoader, replaceableLoader } from "../lib/loaders";
+import { replaceableLoader } from "../lib/loaders";
 import { Badge } from "./ui/badge";
 import { accounts } from "../lib/accounts";
 import {
@@ -18,17 +18,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { LucideEllipsis, LucideRepeat2, LucideTrash } from "lucide-solid";
+import {
+  LucideEllipsis,
+  LucideNewspaper,
+  LucideRepeat2,
+  LucideStickyNote,
+  LucideTrash,
+} from "lucide-solid";
 import { actions } from "../actions/hub";
 import { DeleteCampaign } from "../actions/deleteCampaign";
 import { rxNostr } from "../nostr";
 import EventPreview from "./EventPreview";
-import { EventCoordinates } from "./KindInputGroup";
-import { of } from "rxjs";
 import { Button } from "./ui/button";
 import { createSignal } from "solid-js";
 import { queryStore } from "../stores/queryStore";
 import { eventStore } from "../stores/eventStore";
+import { getTagValue } from "applesauce-core/helpers";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);
@@ -37,7 +42,14 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     queryStore.createQuery(ProfileQuery, props.campaign.pubkey)
   );
 
-  const content = createMemo(() => JSON.parse(props.campaign.content));
+  const content = createMemo(() => {
+    console.log("props.campaign", props.campaign);
+    try {
+      return JSON.parse(props.campaign.content);
+    } catch (error) {
+      console.error(error);
+    }
+  });
 
   const [isCollapsed, setIsCollapsed] = createSignal(true);
   const [needsExpansion, setNeedsExpansion] = createSignal(false);
@@ -58,7 +70,7 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
   const deleteCampaign = async () => {
     const identifier = props.campaign.tags.find((t) => t[0] === "d")?.[1];
     if (!identifier) return;
-    console.log("deleteCampaign", identifier);
+
     await actions
       .exec(DeleteCampaign, identifier)
       .forEach((event: NostrEvent) => {
@@ -67,51 +79,11 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
       });
   };
 
-  createEffect(() => {
-    const eventId = content().take.template.tags.find(
-      (t: string[]) => t[0] === "e"
-    )?.[1];
-    if (!eventId) return;
-
-    const coordinates = eventId?.split(":");
-
-    if (coordinates && coordinates.length === 3) {
-      replaceableLoader.next({
-        kind: parseInt(coordinates[0]),
-        pubkey: coordinates[1],
-        identifier: coordinates[2],
-      });
-    } else {
-      eventLoader.next({ id: eventId });
-    }
-  });
-
   const nostrEventId = createMemo(() => {
-    const eventId = content().take.template.tags.find(
-      (t: string[]) => t[0] === "e"
-    )?.[1];
-    const coordinates = eventId?.split(":");
-    if (coordinates && coordinates.length === 3) {
-      return {
-        kind: parseInt(coordinates[0]),
-        pubkey: coordinates[1],
-        identifier: coordinates[2],
-      };
-    }
-    return eventId;
+    console.log("content", content());
+    if (!content().take.template.tags) return;
+    return getTagValue(content().take.template, "e");
   });
-
-  const nostrEvent = from<NostrEvent>(
-    nostrEventId()
-      ? typeof nostrEventId() === "string"
-        ? queryStore.event(nostrEventId() as string)
-        : queryStore.replaceable(
-            (nostrEventId() as EventCoordinates).kind,
-            (nostrEventId() as EventCoordinates).pubkey,
-            (nostrEventId() as EventCoordinates).identifier
-          )
-      : of(undefined)
-  );
 
   const title = createMemo(() => {
     const title = props.campaign.tags.find((tag) => tag[0] === "title")?.[1];
@@ -140,7 +112,7 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
           </Show>
         </CardTitle>
       </CardHeader>
-      <CardContent class="flex-grow">
+      <CardContent class="flex-grow pb-4">
         <div class="flex flex-row items-center mb-2">
           <img
             src={
@@ -176,6 +148,16 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             </div>
           </Show>
         </div>
+        <Show when={content().take.template.kind === 1}>
+          <div class="flex flex-row items-center gap-1 mt-4">
+            <LucideStickyNote class="w-5 h-5 mr-2" /> Text Note
+          </div>
+        </Show>
+        <Show when={content().take.template.kind === 30023}>
+          <div class="flex flex-row items-center gap-1 mt-4">
+            <LucideNewspaper class="w-5 h-5 mr-2" /> Article
+          </div>
+        </Show>
         <Show when={content().take.template.kind === 6}>
           <div class="flex flex-row items-center gap-1 mt-4">
             <LucideRepeat2 class="w-5 h-5 mr-2" /> Repost
@@ -187,16 +169,18 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             React
           </div>
         </Show>
-        <div>
-          <EventPreview event={nostrEvent()} />
-        </div>
+        <Show when={nostrEventId()}>
+          <div>
+            <EventPreview id={nostrEventId()} />
+          </div>
+        </Show>
         <div class="flex flex-row items-center gap-1 mt-4">
           <For each={props.campaign.tags.filter((tag) => tag[0] === "t")}>
             {(topic, _) => <Badge variant="secondary">{topic[1]}</Badge>}
           </For>
         </div>
       </CardContent>
-      <CardFooter class="flex flex-row justify-between">
+      <CardFooter class="flex flex-row justify-between pb-4">
         <Button variant="link" size="sm">
           Ignore
         </Button>
