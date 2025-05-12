@@ -16,6 +16,7 @@ import {
 } from "@modular-forms/solid";
 import { TopicsInput } from "./TopicsInput";
 import { SettingsForm, settingsSchema } from "../schemas/settingsSchema";
+import { IgnoredCampaigns } from "./IgnoredCampaigns";
 
 export default function Settings(props: {
   open: boolean;
@@ -68,6 +69,8 @@ export default function Settings(props: {
                   </div>
                 )}
               </Field>
+
+              <IgnoredCampaigns />
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

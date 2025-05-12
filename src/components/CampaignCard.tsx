@@ -34,9 +34,12 @@ import { Button } from "./ui/button";
 import { createSignal } from "solid-js";
 import { queryStore } from "../stores/queryStore";
 import { getTagValue } from "applesauce-core/helpers";
+import { IgnoreCampaign } from "../actions/ignoreCampaign";
+import { useAuth } from "../contexts/authContext";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);
+  const { setDialogIsOpen } = useAuth();
 
   const sponsor = from(
     queryStore.createQuery(ProfileQuery, props.campaign.pubkey)
@@ -80,6 +83,18 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     await actions.run(CloseCampaign, props.campaign);
   };
 
+  const ignoreCampaign = async () => {
+    if (!account()) return setDialogIsOpen(true);
+    const identifier = props.campaign.tags.find((t) => t[0] === "d")?.[1];
+    if (!identifier) return;
+
+    await actions.run(IgnoreCampaign, identifier);
+  };
+
+  const sendProposal = async () => {
+    if (!account()) return setDialogIsOpen(true);
+  };
+
   const nostrEventId = createMemo(() => {
     if (!content().take.template.tags) return;
     return getTagValue(content().take.template, "e");
@@ -116,7 +131,7 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
           </Show>
         </CardTitle>
       </CardHeader>
-      <CardContent class="flex-grow pb-4">
+      <CardContent class="flex-grow pb-6">
         <div class="flex flex-row items-center mb-2">
           <img
             src={
@@ -187,12 +202,14 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
       <CardFooter class="flex flex-row justify-between pb-4">
         <div>
           {props.campaign.pubkey !== account()?.pubkey && (
-            <Button variant="link" size="sm">
+            <Button variant="link" size="sm" onClick={ignoreCampaign}>
               Ignore
             </Button>
           )}
         </div>
-        <Button size="sm">Send a Proposal</Button>
+        <Button size="sm" onClick={sendProposal}>
+          Send a Proposal
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -38,6 +38,8 @@ export type AuthContextValue = {
   nip46Signer: Accessor<NostrConnectSigner | undefined>;
   closeNip46Signer: () => void;
   setOnSignInSuccess: (callback: () => void) => void;
+  dialogIsOpen: Accessor<boolean>;
+  setDialogIsOpen: (isOpen: boolean) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -53,6 +55,8 @@ export const AuthContext = createContext<AuthContextValue>({
   nip46Signer: () => undefined,
   closeNip46Signer: () => {},
   setOnSignInSuccess: () => {},
+  dialogIsOpen: () => false,
+  setDialogIsOpen: () => {},
 });
 
 // Hook to use the auth context

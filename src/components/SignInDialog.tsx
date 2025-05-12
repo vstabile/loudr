@@ -26,7 +26,7 @@ type SignInDialogProps = {
 };
 
 export default function SignInDialog(props: SignInDialogProps) {
-  const { signIn } = useAuth();
+  const { signIn, dialogIsOpen, setDialogIsOpen } = useAuth();
 
   const [nsec, setNsec] = createSignal<string | null>(null);
   const [nip07Available, setNip07Available] = createSignal(false);
@@ -55,7 +55,7 @@ export default function SignInDialog(props: SignInDialogProps) {
   });
 
   return (
-    <Dialog>
+    <Dialog open={dialogIsOpen()} onOpenChange={setDialogIsOpen}>
       <DialogTrigger>{props.children}</DialogTrigger>
       <DialogContent class="max-w-sm">
         <DialogHeader>

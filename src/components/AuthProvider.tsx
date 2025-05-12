@@ -27,6 +27,7 @@ export function AuthProvider(props: { children: JSX.Element }) {
   >();
   const [nip46AbortController, setNip46AbortController] =
     createSignal<AbortController>();
+  const [dialogIsOpen, setDialogIsOpen] = createSignal(false);
   let signInSuccessCallback: (() => void) | undefined;
 
   // AbortController for cancelling the waitForSigner operation
@@ -302,6 +303,8 @@ export function AuthProvider(props: { children: JSX.Element }) {
     setOnSignInSuccess: (callback: () => void) => {
       signInSuccessCallback = callback;
     },
+    dialogIsOpen,
+    setDialogIsOpen,
   };
 
   return (

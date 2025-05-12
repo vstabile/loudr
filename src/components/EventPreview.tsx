@@ -57,7 +57,7 @@ export default function EventPreview(props: { id?: string }) {
   // Check if content needs expansion button
   createEffect(() => {
     if (!nostrEvent() || !contentRef) return;
-    setNeedsExpansion(contentRef.scrollHeight > 45);
+    setNeedsExpansion(contentRef.scrollHeight > 160);
   });
 
   return (

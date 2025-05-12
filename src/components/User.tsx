@@ -100,7 +100,7 @@ export default function User() {
             </Match>
           </Switch>
         </DropdownMenuTrigger>
-        <DropdownMenuContent class="bg-white">
+        <DropdownMenuContent>
           <DropdownMenuLabel>
             {profile()?.display_name || (
               <span class="text-xs">{displayNpub()}</span>

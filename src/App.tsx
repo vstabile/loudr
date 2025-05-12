@@ -2,7 +2,7 @@ import { switchMap } from "rxjs";
 import { accounts } from "./lib/accounts";
 import "./App.css";
 import Navbar from "./components/Navbar";
-import { For, from, onMount } from "solid-js";
+import { For, createMemo, from, onMount } from "solid-js";
 import { KINDS, rxNostr } from "./lib/nostr";
 import { createRxForwardReq } from "rx-nostr";
 import CampaignCard from "./components/CampaignCard";
@@ -10,6 +10,8 @@ import { eventStore } from "./stores/eventStore";
 import { queryStore } from "./stores/queryStore";
 import { AuthProvider } from "./components/AuthProvider";
 import { ThemeProvider } from "./lib/theme.tsx";
+import { ignoredCampaignsStore } from "./stores/ignoredCampaignsStore";
+import { getTagValue } from "applesauce-core/helpers";
 
 function App() {
   return (
@@ -23,7 +25,7 @@ function App() {
 
 function AppContent() {
   // subscribe to the active account, then subscribe to the active campaigns or undefined
-  const campaigns = from(
+  const allCampaigns = from(
     accounts.active$.pipe(
       switchMap((account) =>
         account
@@ -34,6 +36,14 @@ function AppContent() {
       )
     )
   );
+
+  // Filter out ignored campaigns
+  const campaigns = createMemo(() => {
+    return allCampaigns()?.filter((campaign) => {
+      const identifier = getTagValue(campaign, "d");
+      return identifier ? !ignoredCampaignsStore.isIgnored(identifier) : true;
+    });
+  });
 
   onMount(async () => {
     // Subscribe to campaign events
