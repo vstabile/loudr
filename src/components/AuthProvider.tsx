@@ -53,6 +53,11 @@ export function AuthProvider(props: { children: JSX.Element }) {
     }
   }
 
+  function signInSuccess() {
+    setDialogIsOpen(false);
+    signInSuccessCallback?.();
+  }
+
   // Derived state - true if user is authenticated
   const isAuthenticated = () => !!state.pubkey && !state.isLoading;
 
@@ -127,7 +132,7 @@ export function AuthProvider(props: { children: JSX.Element }) {
             nsec: nsec || null,
           });
 
-          signInSuccessCallback?.();
+          signInSuccess();
         } catch (error) {
           if (state.isLoading) {
             setState({ isLoading: false });
@@ -140,7 +145,7 @@ export function AuthProvider(props: { children: JSX.Element }) {
           nsec: method === "nsec" ? nsec || null : null,
         });
 
-        signInSuccessCallback?.();
+        signInSuccess();
       } else {
         setState({ isLoading: false });
       }
@@ -218,7 +223,7 @@ export function AuthProvider(props: { children: JSX.Element }) {
           nsec,
           remoteRelay: relays[0],
         });
-        signInSuccessCallback?.();
+        signInSuccess();
       } else {
         setState({ isLoading: false });
       }

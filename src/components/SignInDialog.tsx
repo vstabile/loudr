@@ -1,17 +1,9 @@
-import {
-  createMemo,
-  createSignal,
-  JSX,
-  Match,
-  onMount,
-  Switch,
-} from "solid-js";
+import { createMemo, createSignal, Match, onMount, Switch } from "solid-js";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../components/ui/dialog";
 import { Button } from "./ui/button";
 import { TextField, TextFieldInput } from "./ui/text-field";
@@ -21,11 +13,7 @@ import { AuthMethod } from "../lib/signIn";
 import { waitForNip07 } from "../lib/utils";
 import RemoteSignerDialog from "./RemoteSignerDialog";
 
-type SignInDialogProps = {
-  children: JSX.Element;
-};
-
-export default function SignInDialog(props: SignInDialogProps) {
+export default function SignInDialog() {
   const { signIn, dialogIsOpen, setDialogIsOpen } = useAuth();
 
   const [nsec, setNsec] = createSignal<string | null>(null);
@@ -56,7 +44,6 @@ export default function SignInDialog(props: SignInDialogProps) {
 
   return (
     <Dialog open={dialogIsOpen()} onOpenChange={setDialogIsOpen}>
-      <DialogTrigger>{props.children}</DialogTrigger>
       <DialogContent class="max-w-sm">
         <DialogHeader>
           <Switch>

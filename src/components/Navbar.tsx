@@ -3,11 +3,11 @@ import { from } from "solid-js";
 import User from "./User";
 import { Button } from "./ui/button";
 import CreateCampaign from "./CreateCampaign";
-import SignInDialog from "./SignInDialog";
 import ThemeToggle from "./ThemeToggle";
-
+import { useAuth } from "../contexts/authContext";
 export default function Navbar() {
   const account = from(accounts.active$);
+  const { setDialogIsOpen } = useAuth();
 
   return (
     <nav class="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
@@ -26,11 +26,13 @@ export default function Navbar() {
           <div class="flex items-center gap-2">
             <ThemeToggle />
             {account() === undefined ? (
-              <SignInDialog>
-                <Button variant="default" size="sm">
-                  Sign In
-                </Button>
-              </SignInDialog>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setDialogIsOpen(true)}
+              >
+                Sign In
+              </Button>
             ) : (
               <div class="flex items-center gap-4">
                 <User />

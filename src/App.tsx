@@ -12,6 +12,7 @@ import { AuthProvider } from "./components/AuthProvider";
 import { ThemeProvider } from "./lib/theme.tsx";
 import { ignoredCampaignsStore } from "./stores/ignoredCampaignsStore";
 import { getTagValue } from "applesauce-core/helpers";
+import SignInDialog from "./components/SignInDialog.tsx";
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function AppContent() {
           </For>
         </div>
       </main>
+      <SignInDialog />
     </div>
   );
 }
