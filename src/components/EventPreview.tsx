@@ -108,17 +108,26 @@ export default function EventPreview(props: { id?: string }) {
         )}
       </div>
 
-      <Show when={nostrEvent() && needsExpansion()}>
+      <Show when={nostrEvent() && nostrEvent()!.kind === 1 && needsExpansion()}>
         <div
-          class="absolute text-gray-400 left-0 bottom-0 bg-gradient-to-b from-transparent via-background to-background dark:via-gray-800 dark:to-gray-800 w-full flex justify-center items-center cursor-pointer rounded-md pb-1"
+          class="absolute text-gray-400 left-0 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800 dark:to-gray-800 w-full flex justify-center items-center cursor-pointer rounded-md pb-1 pt-1"
           onClick={() => setIsCollapsed(!isCollapsed())}
         >
           {isCollapsed() ? (
-            <LucideChevronDown class="h-5" />
+            <LucideChevronDown class="h-5 text-secondary-foreground" />
           ) : (
-            <LucideChevronUp class="h-5" />
+            <LucideChevronUp class="h-5 text-secondary-foreground" />
           )}
         </div>
+      </Show>
+      <Show when={nostrEvent() && nostrEvent()!.kind !== 1}>
+        <a
+          href={"https://njump.me/" + nostrEvent()!.id}
+          target="_blank"
+          class="absolute text-secondary-foreground left-4 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800/80 dark:to-gray-800 w-full flex justify-start items-center cursor-pointer rounded-md pb-2 pt-4"
+        >
+          Read more
+        </a>
       </Show>
     </div>
   );
