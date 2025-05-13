@@ -121,9 +121,9 @@ export function formatContent(content: string) {
   });
 }
 
-export function formatNoteContent(note: NostrEvent) {
+export function formatNoteContent(event: NostrEvent) {
   return (
-    note.content
+    event.content
       // Handle line breaks
       .replace(/\n/g, "<br />")
       // Handle URLs - limit display length to 40 chars

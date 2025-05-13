@@ -10,7 +10,8 @@ import {
 import { eventLoader, replaceableLoader } from "../lib/loaders";
 import { LucideChevronDown, LucideChevronUp } from "lucide-solid";
 import { EMPTY } from "rxjs";
-import { RELAYS } from "../lib/nostr";
+import { KINDS, RELAYS } from "../lib/nostr";
+import { getTagValue } from "applesauce-core/helpers";
 
 export default function EventPreview(props: { id?: string }) {
   const [isCollapsed, setIsCollapsed] = createSignal(true);
@@ -67,33 +68,40 @@ export default function EventPreview(props: { id?: string }) {
         " relative flex flex-col border mt-2 py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full dark:bg-gray-800 dark:border-gray-700"
       }
     >
-      <div class="flex justify-between">
-        <div class="flex gap-3 justify-between items-center">
-          <Show when={profile()}>
-            <img
-              src={
-                profile()!.picture ||
-                "https://robohash.org/" + nostrEvent()!.pubkey
-              }
-              class="h-5 w-5 rounded-full"
-            />
-            <span class="truncate">
-              {profile()!.display_name ||
-                profile()!.name ||
-                truncatedNpub(nostrEvent()!.pubkey)}
-            </span>
-          </Show>
-          <Show when={!profile()}>
-            <Skeleton class="flex" height={16} width={16} radius={10} />
-            <Skeleton class="flex" height={16} width={150} radius={10} />
-          </Show>
-        </div>
-        <div class="flex text-xs text-gray-400">
-          {nostrEvent() ? (
-            formatDate(nostrEvent()!.created_at)
-          ) : (
-            <Skeleton class="flex" height={16} width={32} radius={10} />
-          )}
+      <div class="flex flex-col justify-between">
+        <Show when={nostrEvent()?.kind === KINDS.ARTICLE}>
+          <div class="font-bold mb-3">
+            {getTagValue(nostrEvent()!, "title")}
+          </div>
+        </Show>
+        <div class="flex justify-between">
+          <div class="flex gap-3  items-center">
+            <Show when={profile()}>
+              <img
+                src={
+                  profile()!.picture ||
+                  "https://robohash.org/" + nostrEvent()!.pubkey
+                }
+                class="h-5 w-5 rounded-full"
+              />
+              <span class="truncate">
+                {profile()!.display_name ||
+                  profile()!.name ||
+                  truncatedNpub(nostrEvent()!.pubkey)}
+              </span>
+            </Show>
+            <Show when={!profile()}>
+              <Skeleton class="flex" height={16} width={16} radius={10} />
+              <Skeleton class="flex" height={16} width={150} radius={10} />
+            </Show>
+          </div>
+          <div class="flex text-xs text-gray-400">
+            {nostrEvent() ? (
+              formatDate(nostrEvent()!.created_at)
+            ) : (
+              <Skeleton class="flex" height={16} width={32} radius={10} />
+            )}
+          </div>
         </div>
       </div>
       <div class="flex flex-col gap-2 text-xs w-full" ref={contentRef}>
@@ -110,13 +118,13 @@ export default function EventPreview(props: { id?: string }) {
 
       <Show when={nostrEvent() && nostrEvent()!.kind === 1 && needsExpansion()}>
         <div
-          class="absolute text-gray-400 left-0 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800 dark:to-gray-800 w-full flex justify-center items-center cursor-pointer rounded-md pb-1 pt-1"
+          class="absolute text-primary left-0 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800 dark:to-gray-800 w-full flex justify-center items-center cursor-pointer rounded-md pb-1 pt-1"
           onClick={() => setIsCollapsed(!isCollapsed())}
         >
           {isCollapsed() ? (
-            <LucideChevronDown class="h-5 text-secondary-foreground" />
+            <LucideChevronDown class="h-4" />
           ) : (
-            <LucideChevronUp class="h-5 text-secondary-foreground" />
+            <LucideChevronUp class="h-4" />
           )}
         </div>
       </Show>
@@ -124,7 +132,7 @@ export default function EventPreview(props: { id?: string }) {
         <a
           href={"https://njump.me/" + nostrEvent()!.id}
           target="_blank"
-          class="absolute text-secondary-foreground left-4 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800/80 dark:to-gray-800 w-full flex justify-start items-center cursor-pointer rounded-md pb-2 pt-4"
+          class="absolute text-xs text-primary left-4 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800/80 dark:to-gray-800 w-full flex justify-start items-center cursor-pointer rounded-md pb-2 pt-6"
         >
           Read more
         </a>

@@ -157,7 +157,7 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
           {content().description}
 
           <Show when={needsExpansion()}>
-            <div class="absolute bottom-0 left-0 w-full flex bg-gradient-to-b from-transparent via-background to-background">
+            <div class="absolute bottom-0 left-0 w-full flex bg-gradient-to-b from-transparent via-background/90 to-background">
               <button
                 class="text-primary hover:underline mt-2 text-xs"
                 onClick={() => setIsCollapsed(!isCollapsed())}
