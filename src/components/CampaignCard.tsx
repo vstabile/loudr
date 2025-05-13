@@ -150,16 +150,16 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
         <div
           ref={descriptionRef}
           class={
-            (isCollapsed() ? "max-h-20 overflow-hidden truncate" : "") +
+            (isCollapsed() ? "max-h-20 overflow-hidden truncate" : "pb-5") +
             " relative flex flex-col text-sm break-words whitespace-pre-wrap"
           }
         >
           {content().description}
 
           <Show when={needsExpansion()}>
-            <div class="absolute bottom-0 left-0 w-full flex bg-gradient-to-b from-transparent via-background/90 to-background">
+            <div class="absolute bottom-0 left-0 w-full">
               <button
-                class="text-primary hover:underline mt-2 text-xs"
+                class="flex text-primary w-full hover:underline pt-2 text-xs bg-gradient-to-b from-transparent via-background/90 to-background"
                 onClick={() => setIsCollapsed(!isCollapsed())}
               >
                 {isCollapsed() ? "Show more" : "Show less"}

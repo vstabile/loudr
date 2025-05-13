@@ -58,13 +58,15 @@ export default function EventPreview(props: { id?: string }) {
   // Check if content needs expansion button
   createEffect(() => {
     if (!nostrEvent() || !contentRef) return;
-    setNeedsExpansion(contentRef.scrollHeight > 160);
+    setTimeout(() => {
+      setNeedsExpansion(contentRef.scrollHeight > 160);
+    }, 0);
   });
 
   return (
     <div
       class={
-        (isCollapsed() ? "max-h-40 overflow-hidden" : "") +
+        (isCollapsed() ? "max-h-40 overflow-hidden" : "pb-6") +
         " relative flex flex-col border mt-2 py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full dark:bg-gray-800 dark:border-gray-700"
       }
     >
