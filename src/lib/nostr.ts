@@ -33,4 +33,9 @@ export const KINDS = {
   ARTICLE: 30023,
   REPOST: 6,
   REACTION: 7,
+  PICTURE: 20,
+  GENERIC_REPOST: 16,
+  DIRECT_MESSAGE: 4,
+  MAX: 65535,
+  MIN: 0,
 };

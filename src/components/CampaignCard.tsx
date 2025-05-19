@@ -18,24 +18,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  LucideCirclePause,
-  LucideEllipsis,
-  LucideNewspaper,
-  LucideRepeat2,
-  LucideStickyNote,
-  LucideTrash,
-} from "lucide-solid";
+import { LucideCirclePause, LucideEllipsis, LucideTrash } from "lucide-solid";
 import { actions } from "../actions/hub";
 import { DeleteCampaign } from "../actions/deleteCampaign";
 import { CloseCampaign } from "../actions/closeCampaign";
 import EventPreview from "./EventPreview";
 import { Button } from "./ui/button";
-import { createSignal } from "solid-js";
 import { queryStore } from "../stores/queryStore";
 import { getTagValue } from "applesauce-core/helpers";
 import { IgnoreCampaign } from "../actions/ignoreCampaign";
 import { useAuth } from "../contexts/authContext";
+import CreateProposalDialog from "./CreateProposalDialog";
+import CampaignDescription from "./CampaignDescription";
+import KindLabel from "./KindLabel";
+import { KINDS } from "../lib/nostr";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);
@@ -51,15 +47,6 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     } catch (error) {
       console.error(error);
     }
-  });
-
-  const [isCollapsed, setIsCollapsed] = createSignal(true);
-  const [needsExpansion, setNeedsExpansion] = createSignal(false);
-  let descriptionRef: HTMLDivElement | undefined;
-
-  createEffect(() => {
-    if (!descriptionRef) return;
-    setNeedsExpansion(descriptionRef.scrollHeight > 50);
   });
 
   createEffect(async () => {
@@ -91,13 +78,12 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     await actions.run(IgnoreCampaign, identifier);
   };
 
-  const sendProposal = async () => {
-    if (!account()) return setDialogIsOpen(true);
-  };
-
   const nostrEventId = createMemo(() => {
     if (!content().take.template.tags) return;
-    return getTagValue(content().take.template, "e");
+    return (
+      getTagValue(content().take.template, "e") ||
+      getTagValue(content().take.template, "q")
+    );
   });
 
   const title = createMemo(() => {
@@ -131,8 +117,8 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
           </Show>
         </CardTitle>
       </CardHeader>
-      <CardContent class="flex-grow pb-6">
-        <div class="flex flex-row items-center mb-2">
+      <CardContent class="flex-grow pb-4  ">
+        <div class="flex flex-row items-center mb-3">
           <img
             src={
               sponsor()?.picture ||
@@ -147,57 +133,39 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             {sponsor() && sponsor()?.nip05}
           </p>
         </div>
-        <div
-          ref={descriptionRef}
-          class={
-            (isCollapsed() ? "max-h-20 overflow-hidden truncate" : "pb-5") +
-            " relative flex flex-col text-sm break-words whitespace-pre-wrap"
+        <div class="mb-4">
+          <CampaignDescription description={content().description} />
+        </div>
+        <KindLabel template={content().take.template} />
+        <Show
+          when={
+            ![
+              KINDS.NOTE,
+              KINDS.REPOST,
+              KINDS.GENERIC_REPOST,
+              KINDS.REACTION,
+              KINDS.ARTICLE,
+            ].includes(content().take.template.kind)
           }
         >
-          {content().description}
-
-          <Show when={needsExpansion()}>
-            <div class="absolute bottom-0 left-0 w-full">
-              <button
-                class="flex text-primary w-full hover:underline pt-2 text-xs bg-gradient-to-b from-transparent via-background/90 to-background"
-                onClick={() => setIsCollapsed(!isCollapsed())}
-              >
-                {isCollapsed() ? "Show more" : "Show less"}
-              </button>
-            </div>
-          </Show>
-        </div>
-        <Show when={content().take.template.kind === 1}>
-          <div class="flex flex-row items-center gap-1 mt-4">
-            <LucideStickyNote class="w-5 h-5 mr-2" /> Text Note
-          </div>
-        </Show>
-        <Show when={content().take.template.kind === 30023}>
-          <div class="flex flex-row items-center gap-1 mt-4">
-            <LucideNewspaper class="w-5 h-5 mr-2" /> Article
-          </div>
-        </Show>
-        <Show when={content().take.template.kind === 6}>
-          <div class="flex flex-row items-center gap-1 mt-4">
-            <LucideRepeat2 class="w-5 h-5 mr-2" /> Repost
-          </div>
-        </Show>
-        <Show when={content().take.template.kind === 7}>
-          <div class="flex flex-row items-center gap-1 mt-4">
-            <span class="text-xl mr-2">{content().take.template.content}</span>{" "}
-            React
+          <div class="mt-2 p-4 bg-muted rounded-md">
+            <pre class="whitespace-pre-wrap break-words text-xs">
+              {JSON.stringify(content().take.template, null, 2)}
+            </pre>
           </div>
         </Show>
         <Show when={nostrEventId()}>
-          <div>
+          <div class="mt-2">
             <EventPreview id={nostrEventId()} />
           </div>
         </Show>
-        <div class="flex flex-row items-center gap-1 mt-4">
-          <For each={props.campaign.tags.filter((tag) => tag[0] === "t")}>
-            {(topic, _) => <Badge variant="secondary">{topic[1]}</Badge>}
-          </For>
-        </div>
+        <Show when={props.campaign.tags.find((tag) => tag[0] === "t")?.length}>
+          <div class="flex flex-row items-center gap-1 mt-4">
+            <For each={props.campaign.tags.filter((tag) => tag[0] === "t")}>
+              {(topic, _) => <Badge variant="secondary">{topic[1]}</Badge>}
+            </For>
+          </div>
+        </Show>
       </CardContent>
       <CardFooter class="flex flex-row justify-between pb-4">
         <div>
@@ -207,9 +175,7 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             </Button>
           )}
         </div>
-        <Button size="sm" onClick={sendProposal}>
-          Send a Proposal
-        </Button>
+        <CreateProposalDialog campaign={props.campaign} />
       </CardFooter>
     </Card>
   );

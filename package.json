@@ -21,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-solid": "^0.485.0",
+    "nostr-tools": "^2.13.0",
     "qrcode-svg": "^1.1.0",
     "rx-nostr": "^3.6.1",
     "rxjs": "^7.8.2",

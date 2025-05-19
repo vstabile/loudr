@@ -1,10 +1,4 @@
-import {
-  NumberField,
-  NumberFieldDecrementTrigger,
-  NumberFieldGroup,
-  NumberFieldIncrementTrigger,
-  NumberFieldInput,
-} from "./ui/number-field";
+import { NumberField, NumberFieldInput } from "./ui/number-field";
 import {
   Select,
   SelectContent,
@@ -12,118 +6,129 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { createMemo, createSignal, JSX, mergeProps } from "solid-js";
+import { createMemo, createSignal, JSX, splitProps } from "solid-js";
+import { KINDS } from "../lib/nostr";
 
 type KindInputProps = {
-  value?: number;
-  onChange: (value: number) => void;
-  error?: string;
-  label?: JSX.Element | string;
-  description?: string;
+  name: string;
+  label?: string;
+  placeholder?: string;
+  value: number;
+  error: string;
+  required?: boolean;
+  ref: (element: HTMLInputElement) => void;
+  onInput: JSX.EventHandler<HTMLInputElement, InputEvent>;
+  onChange: JSX.EventHandler<HTMLInputElement, Event>;
+  onBlur: JSX.EventHandler<HTMLInputElement, FocusEvent>;
+  excludeKinds?: number[];
 };
 
-const defaultProps = {
-  label: "",
-  description: "The kind of the event being sponsored",
-};
-
-const list: [string, number | undefined][] = [
-  ["Text Note (1)", 1],
-  ["Repost (6)", 6],
-  ["Reaction (7)", 7],
-  ["Long-form Content (30023)", 30023],
-  ["Other kind", undefined],
+const defaultOptions = [
+  { label: "Text Note", value: KINDS.NOTE },
+  { label: "Repost", value: KINDS.REPOST },
+  { label: "Reaction", value: KINDS.REACTION },
+  { label: "Long-form Content", value: KINDS.ARTICLE },
+  { label: "Other kind", value: KINDS.PICTURE },
 ];
 
 export default function KindInput(props: KindInputProps) {
-  props = mergeProps(defaultProps, props);
-  const [showNumberField, setShowNumberField] = createSignal(false);
+  const [, inputProps] = splitProps(props, ["value", "label", "error", "ref"]);
+  const options = defaultOptions.filter(
+    (o) => !props.excludeKinds?.includes(o.value)
+  );
+  const startingValue = options.find((o) => o.value === props.value);
+  const [selectedOption, setSelectedOption] = createSignal(startingValue);
 
-  const labelFromValue = createMemo(() => {
-    return props.value
-      ? list.find(([_, kind]) => kind === props.value)?.[0] || list.at(-1)?.[0]
-      : undefined;
-  });
-
-  function valueFromLabel(label: string | undefined) {
-    return list.find(([l, _]) => l === label)?.[1];
-  }
-
-  function selectValue(label: string | null) {
-    if (!label) {
-      return;
-    }
-
-    const kind = valueFromLabel(label);
-
-    if (kind) {
-      props.onChange(kind);
-      setShowNumberField(false);
-    } else {
-      props.onChange(20);
-      setShowNumberField(true);
-    }
-  }
+  let kindInputRef: HTMLInputElement | undefined;
 
   const triggerClass = createMemo(() => {
-    if (!props.value) return "";
-    let c = ![7, 30023].includes(props.value) ? "rounded-b-none" : "";
+    if (!selectedOption()) return "";
+    let c = ![KINDS.REACTION, KINDS.ARTICLE]
+      .filter((k) => !props.excludeKinds?.includes(k))
+      .includes(selectedOption()!.value)
+      ? "rounded-b-none"
+      : "";
 
-    if (![1, 30023].includes(props.value)) {
+    if (
+      ![KINDS.NOTE, KINDS.ARTICLE]
+        .filter((k) => !props.excludeKinds?.includes(k))
+        .includes(selectedOption()!.value)
+    ) {
       c += " rounded-r-none";
     }
 
     return c;
   });
 
+  const hideNumberField = createMemo(() => {
+    if (selectedOption()?.value === undefined) return true;
+    if (
+      [KINDS.NOTE, KINDS.REPOST, KINDS.ARTICLE, KINDS.REACTION]
+        .filter((k) => !props.excludeKinds?.includes(k))
+        .includes(selectedOption()!.value)
+    ) {
+      return true;
+    }
+    return false;
+  });
+
   return (
-    <>
-      <div class="flex flex-row w-full">
-        <Select
-          value={labelFromValue()}
-          onChange={selectValue}
-          options={list.map(([label, _]) => label)}
-          placeholder="Kind of the sponsored event"
-          itemComponent={(props: any) => (
-            <SelectItem item={props.item}>{props.item.rawValue}</SelectItem>
-          )}
-          class="w-full"
-        >
-          <SelectTrigger aria-label="Event Kind" class={triggerClass()}>
-            <SelectValue>{(state: any) => state.selectedOption()}</SelectValue>
-          </SelectTrigger>
-          <SelectContent />
-        </Select>
+    <div class="flex flex-row w-full">
+      <Select
+        value={selectedOption()}
+        onChange={(option) => {
+          if (!option) return;
+          setSelectedOption(option);
 
-        <NumberField
-          value={props.value}
-          onChange={(value: string) => {
-            const num = Number(value);
+          if (kindInputRef) {
+            kindInputRef.value = String(option.value);
+            kindInputRef.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }}
+        options={options}
+        optionValue="value"
+        optionTextValue="label"
+        placeholder="Select event kind"
+        itemComponent={(props: any) => (
+          <SelectItem item={props.item}>{props.item.rawValue.label}</SelectItem>
+        )}
+        class="w-full"
+      >
+        <SelectTrigger aria-label="Event Kind" class={triggerClass()}>
+          <SelectValue>
+            {(state: any) => state.selectedOption()?.label || "Other kind"}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent />
+      </Select>
 
-            if (!isNaN(num)) {
-              props.onChange(num);
-              if (labelFromValue() !== "Other kind") {
-                setShowNumberField(false);
-              }
-            } else {
-              props.onChange(20);
-            }
+      <NumberField
+        value={props.value}
+        onChange={(value: string) => {
+          const num = Number(value);
+
+          if (!isNaN(num)) {
+            const option = options.find((o) => o.value === num);
+            setSelectedOption(option || { label: "Other kind", value: num });
+          }
+        }}
+        validationState={props.error ? "invalid" : "valid"}
+        minValue={KINDS.MIN}
+        maxValue={KINDS.MAX}
+        format={false}
+        hidden={hideNumberField()}
+      >
+        <NumberFieldInput
+          ref={(el: HTMLInputElement) => {
+            kindInputRef = el;
+            props.ref?.(el);
           }}
-          validationState={props.error ? "invalid" : "valid"}
-          class={showNumberField() ? "" : "hidden"}
-          minValue={0}
-          maxValue={65535}
-        >
-          <NumberFieldGroup>
-            <NumberFieldInput
-              id="kind"
-              class="rounded-l-none rounded-b-none border-l-0"
-            />
-            <NumberFieldIncrementTrigger />
-            <NumberFieldDecrementTrigger />
-          </NumberFieldGroup>
-        </NumberField>
-      </div>
-    </>
+          type="number"
+          {...inputProps}
+          id="kind"
+          class="rounded-l-none rounded-b-none border-l-0"
+        />
+      </NumberField>
+    </div>
   );
 }

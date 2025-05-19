@@ -19,9 +19,9 @@ type EventInputProps = {
 };
 
 const defaultProps = {
-  label: "",
-  description: "",
-  placeholder: "Event ID, nevent, naddr or URL",
+  // label: "",
+  // description: "",
+  // placeholder: "Event ID, nevent, naddr or URL",
 };
 
 function parseEventId(value: string): string | undefined {

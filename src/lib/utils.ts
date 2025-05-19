@@ -144,3 +144,7 @@ export function formatNoteContent(event: NostrEvent) {
       )
   );
 }
+
+export function campaignUrl(pubkey: string, dTag: string, baseUrl?: string) {
+  return `${baseUrl || "https://loudr.me"}/c/${pubkey}/${dTag}`;
+}
