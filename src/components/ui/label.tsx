@@ -1,10 +1,10 @@
-import type { Component, ComponentProps } from "solid-js"
-import { splitProps } from "solid-js"
+import type { Component, ComponentProps } from "solid-js";
+import { splitProps } from "solid-js";
 
-import { cn } from "~/lib/utils"
+import { cn } from "../../lib/utils";
 
 const Label: Component<ComponentProps<"label">> = (props) => {
-  const [local, others] = splitProps(props, ["class"])
+  const [local, others] = splitProps(props, ["class"]);
   return (
     <label
       class={cn(
@@ -13,7 +13,7 @@ const Label: Component<ComponentProps<"label">> = (props) => {
       )}
       {...others}
     />
-  )
-}
+  );
+};
 
-export { Label }
+export { Label };
