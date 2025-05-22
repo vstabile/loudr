@@ -6,11 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { createMemo, createSignal, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { from } from "solid-js";
 import { accounts } from "../lib/accounts";
 import { useAuth } from "../contexts/authContext";
-import { ProposalForm, proposalSchema } from "../schemas/proposalSchema";
+import { ProposalForm, proposalFormSchema } from "../schemas/proposalSchema";
 import {
   createForm,
   getValue,
@@ -40,6 +40,11 @@ import { KINDS } from "../lib/nostr";
 import NostrEventFields from "./NostrEventFields";
 import { queryStore } from "../stores/queryStore";
 import { campaignUrl, profileName } from "../lib/utils";
+import { MintsInput } from "./MintsInput";
+import { DEFAULT_MINT } from "../lib/cashu";
+import { actions } from "../actions/hub";
+import { CreateProposal as CreateProposalAction } from "../actions/createProposal";
+import { eventStore } from "../stores/eventStore";
 
 type SigType = "cashu" | "nostr";
 
@@ -49,6 +54,7 @@ type CreateProposalDialogProps = {
 
 export default function CreateProposalDialog(props: CreateProposalDialogProps) {
   const [isOpen, setIsOpen] = createSignal(false);
+  const [isSubmitting, setIsSubmitting] = createSignal(false);
   const account = from(accounts.active$);
   const { setDialogIsOpen } = useAuth();
   const campaignContent = JSON.parse(props.campaign.content);
@@ -58,19 +64,28 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
     getTagValue(campaignContent.take.template, "q")
       ? 6
       : campaignContent.take.template.kind;
+  const campaignRefId = campaignContent.take.template.tags?.find(
+    (t: string[]) => ["e", "q"].includes(t[0])
+  )?.[1];
+
   const [form, { Form, Field }] = createForm<ProposalForm>({
-    validate: zodForm(proposalSchema),
+    validate: zodForm(proposalFormSchema),
     initialValues: {
       taken: {
         type: campaignContent.give.type,
         amount: undefined,
+        mint: [DEFAULT_MINT],
       },
       given: {
         type: campaignContent.take.type,
         template: {
           kind: givenKind,
           content: "",
-          refId: undefined,
+          reaction:
+            givenKind === KINDS.REACTION
+              ? campaignContent.take.template.content
+              : undefined,
+          refId: campaignRefId,
         },
       },
       notify: false,
@@ -104,8 +119,23 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
   const proposer = from(queryStore.profile(props.campaign.pubkey));
 
   const handleSubmit: SubmitHandler<ProposalForm> = async (values) => {
-    // await actions.run(CreateProposalAction, values);
-    console.log(values);
+    setIsSubmitting(true);
+
+    let ref: NostrEvent | undefined;
+    if (values.given.template.refId) {
+      const split = values.given.template.refId.split(":");
+
+      if (split.length === 3) {
+        ref = eventStore.getReplaceable(parseInt(split[0]), split[1], split[2]);
+      } else {
+        ref = eventStore.getEvent(values.given.template.refId);
+      }
+    }
+
+    console.log("ref", ref);
+
+    await actions.run(CreateProposalAction, values, props.campaign, ref);
+    setIsSubmitting(false);
 
     reset(form);
     setIsOpen(false);
@@ -137,12 +167,13 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
     return JSON.parse(props.campaign.content).description;
   });
 
-  const defaultNotifyContent = createMemo(() => {
+  createEffect(() => {
     const dTag = props.campaign.tags.find((tag) => tag[0] === "d")?.[1];
     const pubkey = account()?.pubkey;
     const url = campaignUrl(pubkey!, dTag!);
 
-    return `I've made you a proposal on Loudr. To accept, go to: ${url}`;
+    const notifyContent = `I've made you a proposal on Loudr. To accept, go to: ${url}`;
+    setValue(form, "notifyContent", notifyContent);
   });
 
   const kindLabels = {
@@ -163,7 +194,7 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
 
   return (
     <Dialog open={isOpen()} onOpenChange={setIsOpen}>
-      <Button size="sm" onClick={handleOpen}>
+      <Button size="sm" onClick={handleOpen} disabled={isSubmitting()}>
         Send a Proposal
       </Button>
       <DialogContent>
@@ -174,7 +205,8 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
               <p class="text-sm mb-2">I want to receive...</p>
               <Field name="taken.type">
                 {(takenTypeField) => (
-                  <Field<any> name="taken.amount" type="number">
+                  // @ts-ignore
+                  <Field name="taken.amount" type="number">
                     {(amountField, amountProps) => (
                       <div class="flex flex-col gap-1">
                         <div class="flex flex-row gap-2">
@@ -223,17 +255,6 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
                                 <NumberFieldInput
                                   type="number"
                                   {...amountProps}
-                                  // onInput={(e) => {
-                                  //   const amount = parseInt(
-                                  //     e.currentTarget.value
-                                  //   );
-                                  //   if (!isNaN(amount))
-                                  //     setValue(
-                                  //       form as FormStore<any>,
-                                  //       "taken.amount",
-                                  //       amount
-                                  //     );
-                                  // }}
                                   value={amountField.value}
                                   error={amountField.error}
                                   placeholder="Amount"
@@ -246,6 +267,21 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
                             </div>
                           </Show>
                         </div>
+                        <Show when={takenTypeField.value === "cashu"}>
+                          <Field name="taken.mint">
+                            {(mintField, mintProps) => (
+                              <MintsInput
+                                {...mintProps}
+                                value={mintField.value}
+                                error={mintField.error}
+                                setValue={(value: string[]) =>
+                                  // @ts-ignore
+                                  setValue(form, "taken.mint", value)
+                                }
+                              />
+                            )}
+                          </Field>
+                        </Show>
                         {takenTypeField.error && (
                           <p class="text-red-500 text-xs ml-0.5">
                             {takenTypeField.error}
@@ -278,6 +314,24 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
                   <input
                     type="hidden"
                     name="given.template.kind"
+                    value={field.value}
+                  />
+                )}
+              </Field>
+              <Field name="given.template.reaction" type="string">
+                {(field, _) => (
+                  <input
+                    type="hidden"
+                    name="given.template.reaction"
+                    value={field.value}
+                  />
+                )}
+              </Field>
+              <Field name="given.template.refId" type="string">
+                {(field, _) => (
+                  <input
+                    type="hidden"
+                    name="given.template.refId"
                     value={field.value}
                   />
                 )}
@@ -337,13 +391,20 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
                     <Show when={notifyField.value}>
                       <Field name="notifyContent">
                         {(field, props) => (
-                          <TextField>
-                            <TextFieldTextArea
-                              {...props}
-                              value={field.value || defaultNotifyContent()}
-                              error={field.error}
-                            />
-                          </TextField>
+                          <div class="flex flex-col gap-1">
+                            <TextField>
+                              <TextFieldTextArea
+                                {...props}
+                                value={field.value}
+                                error={field.error}
+                              />
+                            </TextField>
+                            {field.error && (
+                              <p class="text-red-500 text-xs ml-0.5">
+                                {field.error}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </Field>
                     </Show>
@@ -353,16 +414,10 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
             </div>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              type="submit"
-              class="w-full mt-4"
-              disabled={form.submitting}
-            >
-              {!form.submitting ? (
-                "Send Proposal"
-              ) : (
-                <LucideLoader class="animate-spin" />
-              )}
+            <Button type="submit" class="w-full mt-4" disabled={isSubmitting()}>
+              <Show when={isSubmitting()} fallback="Send a Proposal">
+                <LucideLoader class="animate-spin" /> Sending...
+              </Show>
             </Button>
           </DialogFooter>
         </Form>

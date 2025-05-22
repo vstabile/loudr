@@ -38,6 +38,7 @@ function deepVerifyEvent(event: NostrEvent): event is VerifiedEvent {
 
     return true;
   } catch (error) {
+    console.log(error);
     return false;
   }
 }

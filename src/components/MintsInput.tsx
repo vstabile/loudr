@@ -7,22 +7,23 @@ import {
   TextFieldLabel,
 } from "./ui/text-field";
 import { mintSchema, cleanUrlForDisplay } from "../schemas/mintSchema";
-import { LucideNut } from "lucide-solid";
 
 type MintInputProps = {
-  value: string[];
-  onChange: (value: string[]) => void;
-  error?: string;
+  name: string;
   label?: JSX.Element | string;
+  placeholder?: string;
+  value: string[] | undefined;
+  error: string;
+  required?: boolean;
+  ref: (element: HTMLInputElement) => void;
+  onInput: JSX.EventHandler<HTMLInputElement, InputEvent>;
+  onChange: JSX.EventHandler<HTMLInputElement, Event>;
+  onBlur: JSX.EventHandler<HTMLInputElement, FocusEvent>;
   description?: string;
+  setValue: (value: string[]) => void;
 };
 
 const defaultProps = {
-  label: (
-    <div class="flex items-center gap-1">
-      <LucideNut class="w-4 h-4" /> Trusted Mints
-    </div>
-  ),
   description: "Mints you trust that correctly implement NIP-07 and NIP-11.",
 };
 
@@ -30,25 +31,30 @@ export function MintsInput(props: MintInputProps) {
   props = mergeProps(defaultProps, props);
 
   const addMint = (url: string) => {
+    if (!url.startsWith("https://")) url = "https://" + url;
+
     if (
       url &&
       mintSchema.safeParse(url).success &&
+      props.value &&
       !props.value.includes(url)
     ) {
-      props.onChange([...props.value, url]);
+      props.setValue([...props.value, url]);
       return true;
     }
     return false;
   };
 
   const removeMint = (index: number) => {
-    props.onChange(props.value.filter((_, i) => i !== index));
+    props.setValue((props.value || []).filter((_, i) => i !== index));
   };
 
   return (
     <div>
       <TextField>
-        <TextFieldLabel class="mb-1">{props.label}</TextFieldLabel>
+        {props.label && (
+          <TextFieldLabel class="mb-1">{props.label}</TextFieldLabel>
+        )}
         <div class="relative">
           <div class="absolute left-2 top-1/2 -translate-y-1/2 flex flex-wrap gap-1 max-w-[calc(100%-6rem)] items-center">
             <For each={props.value}>
@@ -67,18 +73,23 @@ export function MintsInput(props: MintInputProps) {
             </For>
           </div>
           <TextFieldInput
-            placeholder={props.value.length ? "" : "https://mint.example.com"}
+            placeholder={
+              props.value && props.value.length
+                ? ""
+                : "https://mint.example.com"
+            }
             class="pl-2"
             style={{
-              "padding-left": props.value.length
-                ? "calc(0.5rem + " +
-                  props.value.reduce(
-                    (acc, url) =>
-                      acc + cleanUrlForDisplay(url).length * 0.4 + 2,
-                    0
-                  ) +
-                  "rem)"
-                : "0.5rem",
+              "padding-left":
+                props.value && props.value.length
+                  ? "calc(0.5rem + " +
+                    props.value.reduce(
+                      (acc, url) =>
+                        acc + cleanUrlForDisplay(url).length * 0.4 + 2,
+                      0
+                    ) +
+                    "rem)"
+                  : "0.5rem",
             }}
             onKeyPress={(e) => {
               if (e.key === "Enter") {

@@ -12,6 +12,7 @@
   "dependencies": {
     "@kobalte/core": "^0.13.9",
     "@modular-forms/solid": "^0.25.1",
+    "@solidjs/router": "^0.15.3",
     "applesauce-accounts": "^1.0.0",
     "applesauce-actions": "^1.1.0",
     "applesauce-core": "^1.2.0",

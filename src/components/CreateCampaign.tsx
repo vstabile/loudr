@@ -24,7 +24,7 @@ import { CreateCampaign as CreateCampaignAction } from "../actions/createCampaig
 import { TopicsInput } from "./TopicsInput";
 import { MintsInput } from "./MintsInput";
 import NostrEventFields from "./NostrEventFields";
-import { LucideLoader } from "lucide-solid";
+import { LucideLoader, LucideNut } from "lucide-solid";
 import { eventStore } from "../stores/eventStore";
 import { NostrEvent } from "nostr-tools";
 import { Checkbox } from "./ui/checkbox";
@@ -32,6 +32,7 @@ import { Label } from "./ui/label";
 import { KINDS } from "../lib/nostr";
 import { accounts } from "../lib/accounts";
 import { campaignUrl } from "../lib/utils";
+import { DEFAULT_MINT } from "../lib/cashu";
 
 export default function CreateCampaign() {
   const account = from(accounts.active$);
@@ -48,7 +49,7 @@ export default function CreateCampaign() {
         reaction: "+",
       },
       topics: [],
-      mints: ["https://mint.refugio.com.br"],
+      mints: [DEFAULT_MINT],
       share: false,
       shareContent: "",
     },
@@ -169,11 +170,19 @@ export default function CreateCampaign() {
 
               <div class="mb-4">
                 <Field type="string[]" name="mints">
-                  {(field, _) => (
+                  {(field, props) => (
                     <MintsInput
-                      value={field.value || []}
-                      onChange={(value) => setValue(form, "mints", value)}
+                      {...props}
+                      value={field.value}
                       error={field.error}
+                      label={
+                        <div class="flex items-center gap-1">
+                          <LucideNut class="w-4 h-4" /> Trusted Mints
+                        </div>
+                      }
+                      setValue={(value: string[]) =>
+                        setValue(form, "mints", value)
+                      }
                     />
                   )}
                 </Field>

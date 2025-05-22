@@ -67,11 +67,14 @@ const proposalTemplateFormSchema = z
     }
   });
 
-export const proposalSchema = z.object({
+export const proposalFormSchema = z.object({
   taken: z.discriminatedUnion("type", [
     z.object({
       type: z.literal("cashu"),
       amount: z.number({ message: "Payment amount is required" }),
+      mint: z
+        .string()
+        .or(z.array(z.string()).min(1, "At least one mint is required")),
     }),
     z.object({
       type: z.literal("nostr"),
@@ -85,17 +88,5 @@ export const proposalSchema = z.object({
   notify: z.boolean().optional(),
   notifyContent: z.string().min(1).optional(),
 });
-// .superRefine((data, ctx) => {
-//   if (
-//     data.given.template.kind === KINDS.NOTE &&
-//     (!data.given.template.content || data.given.template.content === "")
-//   ) {
-//     ctx.addIssue({
-//       code: z.ZodIssueCode.custom,
-//       message: "Text Note content is required",
-//       path: ["given.template.content"],
-//     });
-//   }
-// });
 
-export type ProposalForm = z.input<typeof proposalSchema>;
+export type ProposalForm = z.input<typeof proposalFormSchema>;

@@ -6,7 +6,15 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { createEffect, createMemo, For, from, Show } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  For,
+  from,
+  Match,
+  Show,
+  Switch,
+} from "solid-js";
 import { ProfileQuery } from "applesauce-core/queries";
 import { truncatedNpub } from "../lib/utils";
 import { replaceableLoader } from "../lib/loaders";
@@ -97,7 +105,14 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     <Card class="flex flex-col h-full">
       <CardHeader class="pb-4">
         <CardTitle class="flex flex-row items-center justify-between">
-          <span>{title()}</span>
+          <a
+            href={`c/${props.campaign.pubkey}/${getTagValue(
+              props.campaign,
+              "d"
+            )}`}
+          >
+            {title()}
+          </a>
           <Show when={props.campaign.pubkey === account()?.pubkey}>
             <DropdownMenu placement="bottom-end">
               <DropdownMenuTrigger>
@@ -117,7 +132,7 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
           </Show>
         </CardTitle>
       </CardHeader>
-      <CardContent class="flex-grow pb-4  ">
+      <CardContent class="flex-grow pb-4">
         <div class="flex flex-row items-center mb-3">
           <img
             src={
@@ -175,7 +190,14 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             </Button>
           )}
         </div>
-        <CreateProposalDialog campaign={props.campaign} />
+        <Switch>
+          <Match when={props.campaign.pubkey !== account()?.pubkey}>
+            <CreateProposalDialog campaign={props.campaign} />
+          </Match>
+          <Match when={props.campaign.pubkey === account()?.pubkey}>
+            <Button size="sm">View Proposals</Button>
+          </Match>
+        </Switch>
       </CardFooter>
     </Card>
   );

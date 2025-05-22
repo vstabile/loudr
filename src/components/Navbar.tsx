@@ -16,7 +16,7 @@ export default function Navbar() {
           <div class="flex justify-start items-center">
             <div class="flex-shrink-0">
               <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100 mr-4">
-                Loudr
+                <a href="/">Loudr</a>
               </h1>
             </div>
             <div class="flex gap-4">

@@ -19,7 +19,7 @@ const nostrSigSpecSchema = z.object({
 const cashuSigSpecSchema = z.object({
   type: z.literal("cashu"),
   amount: z.number(),
-  mint: z.array(z.string().url()),
+  mint: z.string().url().or(z.array(z.string().url())),
 });
 
 // Combined Sig Spec Schema

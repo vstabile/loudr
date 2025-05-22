@@ -17,6 +17,7 @@ import {
 import { TopicsInput } from "./TopicsInput";
 import { SettingsForm, settingsSchema } from "../schemas/settingsSchema";
 import { IgnoredCampaigns } from "./IgnoredCampaigns";
+import { LucideNut } from "lucide-solid";
 
 export default function Settings(props: {
   open: boolean;
@@ -47,11 +48,19 @@ export default function Settings(props: {
             <DialogTitle>Settings</DialogTitle>
             <DialogDescription>
               <Field type="string[]" name="mints">
-                {(field, _) => (
+                {(field, props) => (
                   <div class="mb-4">
                     <MintsInput
+                      {...props}
                       value={field.value || []}
-                      onChange={(value) => setValue(form, "mints", value)}
+                      label={
+                        <div class="flex items-center gap-1">
+                          <LucideNut class="w-4 h-4" /> Trusted Mints
+                        </div>
+                      }
+                      setValue={(value: string[]) =>
+                        setValue(form, "mints", value)
+                      }
                       error={field.error}
                     />
                   </div>
