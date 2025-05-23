@@ -6,19 +6,10 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import {
-  createEffect,
-  createMemo,
-  For,
-  from,
-  Match,
-  Show,
-  Switch,
-} from "solid-js";
+import { createEffect, createMemo, from, Match, Show, Switch } from "solid-js";
 import { ProfileQuery } from "applesauce-core/queries";
 import { truncatedNpub } from "../lib/utils";
 import { replaceableLoader } from "../lib/loaders";
-import { Badge } from "./ui/badge";
 import { accounts } from "../lib/accounts";
 import {
   DropdownMenu,
@@ -40,6 +31,7 @@ import CreateProposalDialog from "./CreateProposalDialog";
 import CampaignDescription from "./CampaignDescription";
 import KindLabel from "./KindLabel";
 import { KINDS } from "../lib/nostr";
+import CampaignTopics from "./CampaignTopics";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);
@@ -174,13 +166,9 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             <EventPreview id={nostrEventId()} />
           </div>
         </Show>
-        <Show when={props.campaign.tags.find((tag) => tag[0] === "t")?.length}>
-          <div class="flex flex-row items-center gap-1 mt-4">
-            <For each={props.campaign.tags.filter((tag) => tag[0] === "t")}>
-              {(topic, _) => <Badge variant="secondary">{topic[1]}</Badge>}
-            </For>
-          </div>
-        </Show>
+        <div class="mt-4">
+          <CampaignTopics campaign={props.campaign} />
+        </div>
       </CardContent>
       <CardFooter class="flex flex-row justify-between pb-4">
         <div>

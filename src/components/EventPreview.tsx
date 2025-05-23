@@ -67,7 +67,7 @@ export default function EventPreview(props: { id?: string }) {
     <div
       class={
         (isCollapsed() ? "max-h-40 overflow-hidden" : "pb-6") +
-        " relative flex flex-col border py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full dark:bg-gray-800 dark:border-gray-700"
+        " bg-background relative flex flex-col border py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full dark:bg-gray-800 dark:border-gray-700"
       }
     >
       <div class="flex flex-col justify-between">

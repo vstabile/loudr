@@ -2,8 +2,10 @@ import { accounts } from "../lib/accounts";
 import "../App.css";
 import Navbar from "../components/Navbar";
 import {
+  Accessor,
   For,
   Match,
+  Show,
   Switch,
   createEffect,
   createMemo,
@@ -22,6 +24,12 @@ import { useParams } from "@solidjs/router";
 import { replaceableLoader } from "../lib/loaders.ts";
 import { ProposalCard } from "../components/ProposalCard.tsx";
 import { Button } from "../components/ui/button.tsx";
+import CampaignDescription from "../components/CampaignDescription.tsx";
+import KindLabel from "../components/KindLabel.tsx";
+import { CampaignContent as CampaignContentType } from "../schemas/campaignSchema.ts";
+import { NostrSigSpec } from "../schema.ts";
+import EventPreview from "../components/EventPreview.tsx";
+import CampaignTopics from "../components/CampaignTopics.tsx";
 
 function Campaign() {
   return (
@@ -47,13 +55,22 @@ function CampaignContent() {
     return getTagValue(campaignEvent()!, "title") || "Campaign";
   });
 
-  const campaign = createMemo(() => {
+  const campaign: Accessor<CampaignContentType | undefined> = createMemo(() => {
     return campaignEvent() ? JSON.parse(campaignEvent()!.content) : undefined;
   });
 
   const proposals = from(
     queryStore.timeline({ kinds: [KINDS.PROPOSAL], "#a": [aTag] })
   );
+
+  const nostrEventId = createMemo(() => {
+    if (!campaign() || !(campaign()?.take as NostrSigSpec).template.tags)
+      return;
+    return (
+      getTagValue((campaign()!.take as any).template, "e") ||
+      getTagValue((campaign()!.take as any).template, "q")
+    );
+  });
 
   createEffect(() => {
     if (!campaign()) return;
@@ -97,20 +114,85 @@ function CampaignContent() {
   return (
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Navbar />
-      <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-4 lg:py-6">
-        <h1>{title()}</h1>
-        <p>{campaign()?.description}</p>
-        <Switch>
-          <Match when={campaign()?.pubkey === account()?.pubkey}>
-            {campaign()?.status === "active" && <Button>Close Campaign</Button>}
-            <Button>Delete Campaign</Button>
-          </Match>
-        </Switch>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <For each={proposals() || []}>
-            {(proposal) => <ProposalCard proposal={proposal} />}
-          </For>
-        </div>
+      <main class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-4 lg:py-6">
+        <Show when={campaign()}>
+          <div class="flex flex-col sm:flex-row gap-4 justify-between">
+            <div class="flex flex-col gap-2 w-full">
+              <h1 class="text-2xl font-bold mb-2">{title()}</h1>
+              <Show when={!nostrEventId()}>
+                <KindLabel
+                  template={(campaign()?.take as NostrSigSpec).template}
+                />
+              </Show>
+              <div class="bg-background rounded-md p-4 border border-gray-200 dark:border-gray-700">
+                <CampaignDescription description={campaign()?.description!} />
+              </div>
+              <Show when={campaignEvent()?.tags.find((tag) => tag[0] === "t")}>
+                <div class="hidden sm:block mt-2">
+                  <CampaignTopics campaign={campaignEvent()!} />
+                </div>
+              </Show>
+              <Switch>
+                <Match when={campaignEvent()?.pubkey === account()?.pubkey}>
+                  {getTagValue(campaignEvent()!, "s") === "active" && (
+                    <Button>Close Campaign</Button>
+                  )}
+                  <Button>Delete Campaign</Button>
+                </Match>
+              </Switch>
+            </div>
+            <Show when={nostrEventId()}>
+              <div class="flex flex-col sm:max-w-[300px] md:max-w-[400px]">
+                <KindLabel
+                  template={(campaign()?.take as NostrSigSpec).template}
+                />
+                <Show
+                  when={
+                    ![
+                      KINDS.NOTE,
+                      KINDS.REPOST,
+                      KINDS.GENERIC_REPOST,
+                      KINDS.REACTION,
+                      KINDS.ARTICLE,
+                    ].includes((campaign()!.take as NostrSigSpec).template.kind)
+                  }
+                >
+                  <div class="mt-2 p-4 bg-muted rounded-md">
+                    <pre class="whitespace-pre-wrap break-words text-xs">
+                      {JSON.stringify(
+                        (campaign()!.take as NostrSigSpec).template,
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                </Show>
+                <Show when={nostrEventId()}>
+                  <div class="mt-2 w-full">
+                    <EventPreview id={nostrEventId()} />
+                  </div>
+                </Show>
+
+                <div class="sm:hidden mt-4">
+                  <CampaignTopics campaign={campaignEvent()!} />
+                </div>
+              </div>
+            </Show>
+          </div>
+          <h2 class="text-lg font-bold mt-6 mb-2">Proposals</h2>
+          <Switch>
+            <Match when={proposals()?.length !== 0}>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <For each={proposals() || []}>
+                  {(proposal) => <ProposalCard proposal={proposal} />}
+                </For>
+              </div>
+            </Match>
+            <Match when={proposals()?.length === 0}>
+              <p class="text-sm text-muted-foreground">No proposals yet</p>
+            </Match>
+          </Switch>
+        </Show>
       </main>
       <SignInDialog />
     </div>

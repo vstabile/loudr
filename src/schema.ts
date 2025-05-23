@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { KINDS } from "./lib/nostr";
+import { campaignContentSchema } from "./schemas/campaignSchema";
 
 // Nostr Template Schema
 const nostrTemplateSchema = z.object({
@@ -15,6 +16,8 @@ const nostrSigSpecSchema = z.object({
   template: nostrTemplateSchema,
 });
 
+export type NostrSigSpec = z.infer<typeof nostrSigSpecSchema>;
+
 // Cashu Sig Spec Schema
 const cashuSigSpecSchema = z.object({
   type: z.literal("cashu"),
@@ -22,11 +25,15 @@ const cashuSigSpecSchema = z.object({
   mint: z.string().url().or(z.array(z.string().url())),
 });
 
+export type CashuSigSpec = z.infer<typeof cashuSigSpecSchema>;
+
 // Combined Sig Spec Schema
 const sigSpecSchema = z.discriminatedUnion("type", [
   nostrSigSpecSchema,
   cashuSigSpecSchema,
 ]);
+
+export type SigSpec = z.infer<typeof sigSpecSchema>;
 
 // Content Schema
 const proposalContentSchema = z.object({
@@ -50,10 +57,6 @@ const proposalTagsSchema = z.array(z.array(z.string())).refine(
       "Must contain at least one 'p' tag with a valid 64-character hex pubkey",
   }
 );
-
-const campaignContentSchema = z.object({
-  description: z.string(),
-});
 
 const campaignTagsSchema = z.array(z.array(z.string())).refine(
   (tags) => {
@@ -292,3 +295,4 @@ export type ConnectionUri = z.infer<typeof connectionUriSchema>;
 export type NonceEvent = z.infer<typeof nonceEventSchema>;
 export type AdaptorEvent = z.infer<typeof adaptorEventSchema>;
 export type ProposalEvent = z.infer<typeof proposalEventSchema>;
+export type ProposalContent = z.infer<typeof proposalContentSchema>;
