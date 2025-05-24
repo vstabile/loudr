@@ -8,7 +8,6 @@ import {
 } from "./ui/card";
 import { createEffect, createMemo, from, Match, Show, Switch } from "solid-js";
 import { ProfileQuery } from "applesauce-core/queries";
-import { truncatedNpub } from "../lib/utils";
 import { replaceableLoader } from "../lib/loaders";
 import { accounts } from "../lib/accounts";
 import {
@@ -32,6 +31,7 @@ import CampaignDescription from "./CampaignDescription";
 import KindLabel from "./KindLabel";
 import { KINDS } from "../lib/nostr";
 import CampaignTopics from "./CampaignTopics";
+import { ProfilePreview } from "./ProfilePreview";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);
@@ -125,20 +125,12 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
         </CardTitle>
       </CardHeader>
       <CardContent class="flex-grow pb-4">
-        <div class="flex flex-row items-center mb-3">
-          <img
-            src={
-              sponsor()?.picture ||
-              "https://robohash.org/" + props.campaign.pubkey
-            }
-            class="h-5 w-5 rounded-full mr-2"
+        <div class="mb-3">
+          <ProfilePreview
+            profile={sponsor}
+            pubkey={props.campaign.pubkey}
+            size="sm"
           />
-          <p>
-            {sponsor() ? sponsor()?.name : truncatedNpub(props.campaign.pubkey)}
-          </p>
-          <p class="text-gray-400 ml-2 text-sm truncate">
-            {sponsor() && sponsor()?.nip05}
-          </p>
         </div>
         <div class="mb-4">
           <CampaignDescription description={content().description} />
@@ -183,7 +175,14 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
             <CreateProposalDialog campaign={props.campaign} />
           </Match>
           <Match when={props.campaign.pubkey === account()?.pubkey}>
-            <Button size="sm">View Proposals</Button>
+            <a
+              href={`c/${props.campaign.pubkey}/${getTagValue(
+                props.campaign,
+                "d"
+              )}`}
+            >
+              <Button size="sm">View Proposals</Button>
+            </a>
           </Match>
         </Switch>
       </CardFooter>

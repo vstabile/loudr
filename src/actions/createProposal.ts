@@ -43,24 +43,24 @@ export function CreateProposal(
     const campaignContent = JSON.parse(campaign.content);
     console.log("campaignContent", campaignContent);
 
+    const refKind = ref?.kind;
     const givenKind = form.given.template.kind;
 
     let givenTemplate: PartialEventTemplate = {
       kind: givenKind,
+      content: "",
       created_at: campaignContent.take.template.created_at || created_at,
       tags: [],
     };
 
-    console.log("givenTemplate", givenTemplate);
-
     if (givenKind === KINDS.NOTE) {
       givenTemplate.content = form.given.template.content;
-    } else if (givenKind === KINDS.REPOST) {
+    } else if ([KINDS.REPOST, KINDS.GENERIC_REPOST].includes(givenKind)) {
       if (form.given.template.content === "") {
         // Unquoted repost
         givenTemplate = {
           ...givenTemplate,
-          kind: givenKind === KINDS.NOTE ? KINDS.REPOST : KINDS.GENERIC_REPOST,
+          kind: refKind === KINDS.NOTE ? KINDS.REPOST : KINDS.GENERIC_REPOST,
           content: JSON.stringify(ref),
           tags: [
             ["e", ref!.id, refRelay || ""],
@@ -89,6 +89,8 @@ export function CreateProposal(
         ],
       };
     }
+
+    console.log("givenTemplate", givenTemplate);
 
     const proposal = {
       give: {

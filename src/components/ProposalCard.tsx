@@ -10,12 +10,18 @@ import {
 } from "solid-js";
 import { replaceableLoader } from "../lib/loaders";
 import { queryStore } from "../stores/queryStore";
-import { truncatedNpub } from "../lib/utils";
-import ProfilePicture from "./ProfilePicture";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent, CardFooter } from "./ui/card";
 import { CashuSigSpec, NostrSigSpec, ProposalContent } from "../schema";
+import EventPreview from "./EventPreview";
+import { accounts } from "../lib/accounts";
+import { Button } from "./ui/button";
+import { ProfilePreview } from "./ProfilePreview";
 
-export function ProposalCard(props: { proposal: NostrEvent }) {
+export function ProposalCard(props: {
+  proposal: NostrEvent;
+  campaign: NostrEvent;
+}) {
+  const account = from(accounts.active$);
   const content: Accessor<ProposalContent | undefined> = createMemo(() => {
     try {
       return JSON.parse(props.proposal.content);
@@ -44,18 +50,8 @@ export function ProposalCard(props: { proposal: NostrEvent }) {
   return (
     <Card class="flex flex-col h-full">
       <CardContent class="flex-grow py-4">
-        <div class="flex flex-row items-center mb-2 gap-2">
-          <div class="w-6 h-6 rounded-full overflow-hidden">
-            <ProfilePicture profile={proposer} pubkey={props.proposal.pubkey} />
-          </div>
-          <p>
-            {proposer()
-              ? proposer()?.name
-              : truncatedNpub(props.proposal.pubkey)}
-          </p>
-          <p class="text-gray-400 ml-2 text-sm truncate">
-            {proposer() && proposer()?.nip05}
-          </p>
+        <div class="mb-2">
+          <ProfilePreview profile={proposer} pubkey={props.proposal.pubkey} />
         </div>
         <p>is asking for</p>
         <Switch>
@@ -85,14 +81,40 @@ export function ProposalCard(props: { proposal: NostrEvent }) {
             {(() => {
               const nostrSpec = given() as NostrSigSpec;
               return (
-                <>
-                  <p>{nostrSpec.template.content}</p>
-                </>
+                <div class="mt-2">
+                  <EventPreview
+                    event={{
+                      ...nostrSpec.template,
+                      pubkey: props.proposal.pubkey,
+                    }}
+                  />
+                </div>
               );
             })()}
           </Match>
         </Switch>
       </CardContent>
+      <CardFooter>
+        <Switch>
+          <Match
+            when={account() && props.proposal.pubkey === account()!.pubkey}
+          >
+            <Button variant="outline" class="text-red-600 border-red-600">
+              Cancel
+            </Button>
+          </Match>
+          <Match
+            when={account() && props.campaign.pubkey === account()!.pubkey}
+          >
+            <div class="flex gap-2 justify-between w-full">
+              <Button variant="outline" class="text-red-600 border-red-600">
+                Deny
+              </Button>
+              <Button>Accept</Button>
+            </div>
+          </Match>
+        </Switch>
+      </CardFooter>
     </Card>
   );
 }

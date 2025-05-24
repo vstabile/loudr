@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { nip19, NostrEvent } from "nostr-tools";
+import { nip19, NostrEvent, UnsignedEvent } from "nostr-tools";
 import { createEffect, createSignal, from, onCleanup } from "solid-js";
 import { Observable, Subscription } from "rxjs";
 import { ProfileContent } from "applesauce-core/helpers";
@@ -121,7 +121,7 @@ export function formatContent(content: string) {
   });
 }
 
-export function formatNoteContent(event: NostrEvent) {
+export function formatNoteContent(event: NostrEvent | UnsignedEvent) {
   return (
     event.content
       // Handle line breaks
@@ -134,6 +134,11 @@ export function formatNoteContent(event: NostrEvent) {
       .replace(
         /nostr:([a-z0-9]+1[023456789acdefghjklmnpqrstuvwxyz]+)/g,
         (match: string, bech32: string) => {
+          // Remove event mentions
+          if (bech32.startsWith("nevent")) {
+            return "";
+          }
+
           return `<a href="https://njump.me/${bech32}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${match}</a>`;
         }
       )
@@ -142,6 +147,8 @@ export function formatNoteContent(event: NostrEvent) {
         /#[\w\u0590-\u05ff]+/g,
         (tag) => `<span class="text-primary">${tag}</span>`
       )
+      // Remove line breaks at the end of the content
+      .replace(/<br \/>$/g, "")
   );
 }
 

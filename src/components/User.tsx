@@ -1,11 +1,4 @@
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  from,
-  Match,
-  Switch,
-} from "solid-js";
+import { createEffect, createMemo, createSignal, from } from "solid-js";
 import { accounts } from "../lib/accounts";
 import { replaceableLoader } from "../lib/loaders";
 import { of, switchMap } from "rxjs";
@@ -23,6 +16,7 @@ import Settings from "./Settings";
 import { LucideSettings, LucideLogOut } from "lucide-solid";
 import { truncatedNpub } from "../lib/utils";
 import { useAuth } from "../contexts/authContext";
+import ProfilePicture from "./ProfilePicture";
 
 export default function User() {
   const account = from(accounts.active$);
@@ -82,23 +76,9 @@ export default function User() {
       <Settings open={settingsIsOpen()} onOpenChange={setSettingsIsOpen} />
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Switch>
-            <Match when={account() && profile()}>
-              <img
-                src={
-                  profile()?.picture ||
-                  "https://robohash.org/" + account()?.pubkey
-                }
-                class="h-8 w-8 rounded-full"
-              />
-            </Match>
-            <Match when={!profile()}>
-              <img
-                src={"https://robohash.org/" + account()?.pubkey}
-                class="h-8 w-8 rounded-full"
-              />
-            </Match>
-          </Switch>
+          <div class="w-8 h-8 rounded-full overflow-hidden">
+            <ProfilePicture profile={profile} pubkey={account()!.pubkey} />
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuLabel>

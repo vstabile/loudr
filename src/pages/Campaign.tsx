@@ -23,13 +23,26 @@ import SignInDialog from "../components/SignInDialog.tsx";
 import { useParams } from "@solidjs/router";
 import { replaceableLoader } from "../lib/loaders.ts";
 import { ProposalCard } from "../components/ProposalCard.tsx";
-import { Button } from "../components/ui/button.tsx";
 import CampaignDescription from "../components/CampaignDescription.tsx";
 import KindLabel from "../components/KindLabel.tsx";
 import { CampaignContent as CampaignContentType } from "../schemas/campaignSchema.ts";
 import { NostrSigSpec } from "../schema.ts";
 import EventPreview from "../components/EventPreview.tsx";
 import CampaignTopics from "../components/CampaignTopics.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu.tsx";
+import { LucideCirclePause, LucideEllipsis, LucideTrash } from "lucide-solid";
+import CreateProposalDialog from "../components/CreateProposalDialog.tsx";
+import { DeleteCampaign } from "../actions/deleteCampaign.ts";
+import { actions } from "../actions/hub.ts";
+import { CloseCampaign } from "../actions/closeCampaign.ts";
+import { EMPTY } from "rxjs";
+import { fromReactive } from "../lib/utils.ts";
+import { ProfilePreview } from "../components/ProfilePreview.tsx";
 
 function Campaign() {
   return (
@@ -72,6 +85,10 @@ function CampaignContent() {
     );
   });
 
+  const campaignAuthor = fromReactive(() =>
+    campaignEvent() ? queryStore.profile(campaignEvent()!.pubkey) : EMPTY
+  );
+
   createEffect(() => {
     if (!campaign()) return;
 
@@ -111,6 +128,19 @@ function CampaignContent() {
     ]);
   });
 
+  const deleteCampaign = async () => {
+    const identifier = campaignEvent()!.tags.find((t) => t[0] === "d")?.[1];
+    if (!identifier) return;
+
+    await actions.run(DeleteCampaign, identifier);
+  };
+
+  const closeCampaign = async () => {
+    const identifier = campaignEvent()!.tags.find((t) => t[0] === "d")?.[1];
+    if (!identifier) return;
+
+    await actions.run(CloseCampaign, campaignEvent()!);
+  };
   return (
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Navbar />
@@ -118,7 +148,33 @@ function CampaignContent() {
         <Show when={campaign()}>
           <div class="flex flex-col sm:flex-row gap-4 justify-between">
             <div class="flex flex-col gap-2 w-full">
-              <h1 class="text-2xl font-bold mb-2">{title()}</h1>
+              <div class="flex flex-row items-center gap-2 justify-between mb-1">
+                <h1 class="text-2xl font-bold">{title()}</h1>
+                <DropdownMenu placement="bottom-end">
+                  <DropdownMenuTrigger>
+                    <LucideEllipsis class="w-4 h-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent class="bg-white">
+                    <DropdownMenuItem onClick={closeCampaign}>
+                      <LucideCirclePause class="w-4 h-4" />
+                      Close Campaign
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={deleteCampaign}
+                      class="text-red-600"
+                    >
+                      <LucideTrash class="w-4 h-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div class="mb-2">
+                <ProfilePreview
+                  profile={campaignAuthor}
+                  pubkey={campaignEvent()!.pubkey}
+                />
+              </div>
               <Show when={!nostrEventId()}>
                 <KindLabel
                   template={(campaign()?.take as NostrSigSpec).template}
@@ -132,14 +188,11 @@ function CampaignContent() {
                   <CampaignTopics campaign={campaignEvent()!} />
                 </div>
               </Show>
-              <Switch>
-                <Match when={campaignEvent()?.pubkey === account()?.pubkey}>
-                  {getTagValue(campaignEvent()!, "s") === "active" && (
-                    <Button>Close Campaign</Button>
-                  )}
-                  <Button>Delete Campaign</Button>
-                </Match>
-              </Switch>
+              <Show when={campaignEvent()?.pubkey !== account()?.pubkey}>
+                <div class="mt-2">
+                  <CreateProposalDialog campaign={campaignEvent()!} />
+                </div>
+              </Show>
             </div>
             <Show when={nostrEventId()}>
               <div class="flex flex-col sm:max-w-[300px] md:max-w-[400px]">
@@ -179,12 +232,17 @@ function CampaignContent() {
               </div>
             </Show>
           </div>
-          <h2 class="text-lg font-bold mt-6 mb-2">Proposals</h2>
+          <h2 class="text-lg font-bold mt-6 mb-4">Proposals</h2>
           <Switch>
             <Match when={proposals()?.length !== 0}>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <For each={proposals() || []}>
-                  {(proposal) => <ProposalCard proposal={proposal} />}
+                  {(proposal) => (
+                    <ProposalCard
+                      proposal={proposal}
+                      campaign={campaignEvent()!}
+                    />
+                  )}
                 </For>
               </div>
             </Match>
