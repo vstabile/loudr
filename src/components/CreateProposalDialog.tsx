@@ -132,8 +132,6 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
       }
     }
 
-    console.log("ref", ref);
-
     await actions.run(CreateProposalAction, values, props.campaign, ref);
     setIsSubmitting(false);
 

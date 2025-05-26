@@ -155,3 +155,13 @@ export function formatNoteContent(event: NostrEvent | UnsignedEvent) {
 export function campaignUrl(pubkey: string, dTag: string, baseUrl?: string) {
   return `${baseUrl || "https://loudr.me"}/c/${pubkey}/${dTag}`;
 }
+
+export function formatAmount(amount: number): string {
+  const formatter = new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  });
+
+  return formatter.format(amount);
+}

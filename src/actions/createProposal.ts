@@ -3,7 +3,6 @@ import { NostrEvent, EventTemplate } from "nostr-tools";
 import { KINDS } from "../lib/nostr";
 import { ProposalForm } from "../schemas/proposalSchema";
 import { getTagValue } from "applesauce-core/helpers";
-import { PartialEventTemplate } from "../schemas/miscSchema";
 import { from } from "solid-js";
 import { accounts } from "../lib/accounts";
 
@@ -41,12 +40,11 @@ export function CreateProposal(
     const created_at = Math.floor(Date.now() / 1000);
 
     const campaignContent = JSON.parse(campaign.content);
-    console.log("campaignContent", campaignContent);
 
     const refKind = ref?.kind;
     const givenKind = form.given.template.kind;
 
-    let givenTemplate: PartialEventTemplate = {
+    let givenTemplate: EventTemplate = {
       kind: givenKind,
       content: "",
       created_at: campaignContent.take.template.created_at || created_at,
@@ -54,7 +52,7 @@ export function CreateProposal(
     };
 
     if (givenKind === KINDS.NOTE) {
-      givenTemplate.content = form.given.template.content;
+      givenTemplate.content = form.given.template.content || "";
     } else if ([KINDS.REPOST, KINDS.GENERIC_REPOST].includes(givenKind)) {
       if (form.given.template.content === "") {
         // Unquoted repost
@@ -73,7 +71,7 @@ export function CreateProposal(
         givenTemplate = {
           ...givenTemplate,
           kind: KINDS.NOTE,
-          content: form.given.template.content,
+          content: form.given.template.content || "",
           tags: [["q", ref!.id, refRelay || "", ref!.pubkey!]],
         };
       }
@@ -81,7 +79,7 @@ export function CreateProposal(
     } else if (givenKind === KINDS.REACTION) {
       givenTemplate = {
         ...givenTemplate,
-        content: form.given.template.reaction,
+        content: form.given.template.reaction || "+",
         tags: [
           ["e", ref!.id, refRelay || ""],
           ["p", ref!.pubkey!],
@@ -90,7 +88,12 @@ export function CreateProposal(
       };
     }
 
-    console.log("givenTemplate", givenTemplate);
+    const signedGivenEvent = await account()!.signEvent(givenTemplate);
+    const nonce = signedGivenEvent.sig.slice(0, 64);
+    const enc_s = await account()!.nip04!.encrypt(
+      account()!.pubkey,
+      signedGivenEvent.sig.slice(64)
+    );
 
     const proposal = {
       give: {
@@ -104,9 +107,9 @@ export function CreateProposal(
         // @ts-ignore
         mint: form.taken.mint,
       },
+      nonce,
+      enc_s,
     };
-
-    console.log("action proposal", proposal);
 
     const draft = await factory.build({
       kind: KINDS.PROPOSAL,
@@ -120,8 +123,6 @@ export function CreateProposal(
         ["p", campaign.pubkey],
       ],
     });
-
-    console.log("action draft", draft);
 
     yield await factory.sign(draft);
 

@@ -32,6 +32,7 @@ import KindLabel from "./KindLabel";
 import { KINDS } from "../lib/nostr";
 import CampaignTopics from "./CampaignTopics";
 import { ProfilePreview } from "./ProfilePreview";
+import { showToast } from "./ui/toast";
 
 export default function CampaignCard(props: { campaign: NostrEvent }) {
   const account = from(accounts.active$);
@@ -61,6 +62,11 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     if (!identifier) return;
 
     await actions.run(DeleteCampaign, identifier);
+
+    showToast({
+      title: "Campaign deleted.",
+      variant: "destructive",
+    });
   };
 
   const closeCampaign = async () => {
@@ -68,6 +74,10 @@ export default function CampaignCard(props: { campaign: NostrEvent }) {
     if (!identifier) return;
 
     await actions.run(CloseCampaign, props.campaign);
+
+    showToast({
+      title: "Campaign is now closed.",
+    });
   };
 
   const ignoreCampaign = async () => {

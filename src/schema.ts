@@ -42,7 +42,7 @@ const proposalContentSchema = z.object({
   exp: z.number().optional(),
   role: z.enum(["adaptor", "nonce"]).optional(),
   description: z.string().optional(),
-  nonce: z.string().optional(),
+  nonce: z.string(),
   enc_s: z.string().optional(),
 });
 

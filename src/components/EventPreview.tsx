@@ -9,7 +9,11 @@ import { queryStore } from "../stores/queryStore";
 import { Skeleton } from "./ui/skeleton";
 import { formatDate, fromReactive, formatNoteContent, cn } from "../lib/utils";
 import { eventLoader, replaceableLoader } from "../lib/loaders";
-import { LucideChevronDown, LucideChevronUp } from "lucide-solid";
+import {
+  LucideChevronDown,
+  LucideChevronUp,
+  LucideRepeat2,
+} from "lucide-solid";
 import { EMPTY } from "rxjs";
 import { KINDS, RELAYS } from "../lib/nostr";
 import { getTagValue } from "applesauce-core/helpers";
@@ -29,7 +33,7 @@ export default function EventPreview(props: {
   const [needsExpansion, setNeedsExpansion] = createSignal(false);
   let contentRef: HTMLDivElement | undefined;
 
-  const nostrEvent = fromReactive(() => {
+  const eventFromId = fromReactive(() => {
     if (!props.id) return EMPTY;
     const coordinates = props.id.split(":");
 
@@ -52,35 +56,34 @@ export default function EventPreview(props: {
     }
   });
 
+  const nostrEvent = createMemo(() => props.event || eventFromId());
+
   const profile = fromReactive(() =>
-    props.event || nostrEvent()
-      ? queryStore.profile(props.event?.pubkey || nostrEvent()!.pubkey)
-      : EMPTY
+    nostrEvent() ? queryStore.profile(nostrEvent()!.pubkey) : EMPTY
   );
 
   // Load event author profile
   createEffect(() => {
-    if (!props.event && !nostrEvent()) return;
+    if (!nostrEvent()) return;
 
     replaceableLoader.next({
-      pubkey: props.event?.pubkey || nostrEvent()!.pubkey,
+      pubkey: nostrEvent()!.pubkey,
       kind: 0,
     });
   });
 
   // Check if content needs expansion button
   createEffect(() => {
-    if ((!props.event && !nostrEvent()) || !contentRef) return;
+    if (!nostrEvent() || !contentRef) return;
     setTimeout(() => {
-      if (props.id) console.log(contentRef.scrollHeight);
       setNeedsExpansion(contentRef.scrollHeight >= 160);
     }, 0);
   });
 
   const mentions: Accessor<string[][]> = createMemo(() => {
-    if (!props.event && !nostrEvent()) return [];
+    if (!nostrEvent()) return [];
 
-    const event = props.event || nostrEvent()!;
+    const event = nostrEvent()!;
     const tags = event.tags.filter((tag) => MENTION_TAGS.includes(tag[0]));
 
     return tags;
@@ -89,13 +92,25 @@ export default function EventPreview(props: {
   return (
     <div class="bg-background flex flex-col border py-4 px-4 text-muted-foreground text-sm border-gray-200 rounded-md gap-3 w-full dark:bg-gray-800 dark:border-gray-700">
       <div class="flex flex-col justify-between">
-        <Show when={(props.event || nostrEvent())?.kind === KINDS.ARTICLE}>
+        <Show when={nostrEvent()?.kind === KINDS.ARTICLE}>
           <div class="font-bold mb-3">
             {getTagValue(nostrEvent()!, "title")}
           </div>
         </Show>
         <div class="flex justify-between">
-          <div class="flex gap-3  items-center">
+          <div class="flex gap-2 items-center">
+            <Show
+              when={
+                nostrEvent() &&
+                [KINDS.REPOST, KINDS.GENERIC_REPOST].includes(
+                  nostrEvent()!.kind
+                )
+              }
+            >
+              <div class="flex items-center">
+                <LucideRepeat2 class="w-5 h-5" />
+              </div>
+            </Show>
             <Show when={profile()}>
               <ProfilePreview
                 profile={profile}
@@ -109,8 +124,8 @@ export default function EventPreview(props: {
             </Show>
           </div>
           <div class="flex text-xs text-gray-400">
-            {props.event || nostrEvent() ? (
-              formatDate(props.event?.created_at || nostrEvent()!.created_at)
+            {nostrEvent() ? (
+              formatDate(nostrEvent()!.created_at)
             ) : (
               <Skeleton class="flex" height={16} width={32} radius={10} />
             )}
@@ -118,9 +133,7 @@ export default function EventPreview(props: {
         </div>
       </div>
       <Show
-        when={[KINDS.NOTE, KINDS.ARTICLE].includes(
-          (props.event || nostrEvent())?.kind || 0
-        )}
+        when={[KINDS.NOTE, KINDS.ARTICLE].includes(nostrEvent()?.kind || 0)}
       >
         <div class="relative">
           <div
@@ -129,9 +142,9 @@ export default function EventPreview(props: {
             }
           >
             <div class="flex flex-col gap-2 text-xs w-full" ref={contentRef}>
-              {props.event || nostrEvent() ? (
+              {nostrEvent() ? (
                 <div
-                  innerHTML={formatNoteContent(props.event || nostrEvent()!)}
+                  innerHTML={formatNoteContent(nostrEvent()!)}
                   class="w-full break-words overflow-hidden whitespace-pre-wrap max-w-full overflow-wrap-anywhere"
                   style="word-break: break-word;"
                 />
@@ -141,11 +154,7 @@ export default function EventPreview(props: {
             </div>
           </div>
           <Show
-            when={
-              (props.event || nostrEvent()) &&
-              (props.event || nostrEvent())!.kind === 1 &&
-              needsExpansion()
-            }
+            when={nostrEvent() && nostrEvent()!.kind === 1 && needsExpansion()}
           >
             <div
               class="absolute text-primary mb-[-0.5rem] left-0 bottom-0 bg-gradient-to-b from-transparent via-background/80 to-background dark:via-gray-800 dark:to-gray-800 w-full flex justify-center items-center cursor-pointer rounded-md pt-2"
@@ -159,11 +168,7 @@ export default function EventPreview(props: {
             </div>
           </Show>
           <Show
-            when={
-              (props.event || nostrEvent()) &&
-              (props.event || nostrEvent())!.kind !== 1 &&
-              (props.event || nostrEvent())?.id
-            }
+            when={nostrEvent() && nostrEvent()!.kind !== 1 && nostrEvent()?.id}
           >
             <a
               href={"https://njump.me/" + nostrEvent()!.id}

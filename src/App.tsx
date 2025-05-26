@@ -13,6 +13,7 @@ import { ThemeProvider } from "./lib/theme.tsx";
 import { ignoredCampaignsStore } from "./stores/ignoredCampaignsStore";
 import { getTagValue } from "applesauce-core/helpers";
 import SignInDialog from "./components/SignInDialog.tsx";
+import { Toaster } from "./components/ui/toast.tsx";
 
 function App() {
   return (
@@ -73,6 +74,7 @@ function AppContent() {
         </div>
       </main>
       <SignInDialog />
+      <Toaster />
     </div>
   );
 }

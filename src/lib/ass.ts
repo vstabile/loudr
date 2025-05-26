@@ -125,6 +125,9 @@ export function computeAdaptors(
   nonce: string,
   key: Uint8Array
 ): Adaptor[] {
+  const takenType = getTakenType(proposal);
+  console.log("takenType", takenType);
+  if (takenType === "cashu") return [];
   const takeId = getTakenId(proposal);
   const counterparty = proposal.tags.filter((t) => t[0] === "p")[0][1];
   // Computes the take signature challenge using counterparty's public nonce:
@@ -219,6 +222,10 @@ export function getTakenId(proposal: NostrEvent): string {
   return getEventHash(nostrEvent);
 }
 
+export function getTakenType(proposal: NostrEvent): string {
+  return JSON.parse(proposal.content)["take"]["type"];
+}
+
 export function getGivenId(proposal: NostrEvent): string {
   const nostrEvent = {
     pubkey: proposal.pubkey,
@@ -228,7 +235,7 @@ export function getGivenId(proposal: NostrEvent): string {
   return getEventHash(nostrEvent);
 }
 
-function getGivenType(proposal: NostrEvent): string {
+export function getGivenType(proposal: NostrEvent): string {
   return JSON.parse(proposal.content)["give"]["type"];
 }
 

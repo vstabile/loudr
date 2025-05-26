@@ -20,9 +20,8 @@ import { AuthProvider } from "../components/AuthProvider";
 import { ThemeProvider } from "../lib/theme.tsx";
 import { getTagValue } from "applesauce-core/helpers";
 import SignInDialog from "../components/SignInDialog.tsx";
-import { useParams } from "@solidjs/router";
+import { useNavigate, useParams } from "@solidjs/router";
 import { replaceableLoader } from "../lib/loaders.ts";
-import { ProposalCard } from "../components/ProposalCard.tsx";
 import CampaignDescription from "../components/CampaignDescription.tsx";
 import KindLabel from "../components/KindLabel.tsx";
 import { CampaignContent as CampaignContentType } from "../schemas/campaignSchema.ts";
@@ -43,6 +42,10 @@ import { CloseCampaign } from "../actions/closeCampaign.ts";
 import { EMPTY } from "rxjs";
 import { fromReactive } from "../lib/utils.ts";
 import { ProfilePreview } from "../components/ProfilePreview.tsx";
+import { Badge } from "../components/ui/badge.tsx";
+import { showToast, Toaster } from "../components/ui/toast.tsx";
+import { CampaignSwaps } from "../queries/swap.ts";
+import { SwapCard } from "../components/SwapCard.tsx";
 
 function Campaign() {
   return (
@@ -58,6 +61,7 @@ function CampaignContent() {
   const { pubkey, dTag } = useParams();
   const account = from(accounts.active$);
   const aTag = `${KINDS.CAMPAIGN}:${pubkey}:${dTag}`;
+  const navigate = useNavigate();
 
   const campaignEvent = from(
     queryStore.replaceable(KINDS.CAMPAIGN, pubkey, dTag)
@@ -72,9 +76,16 @@ function CampaignContent() {
     return campaignEvent() ? JSON.parse(campaignEvent()!.content) : undefined;
   });
 
+  const status = createMemo(() => {
+    if (!campaign()) return;
+    return getTagValue(campaignEvent()!, "s");
+  });
+
   const proposals = from(
     queryStore.timeline({ kinds: [KINDS.PROPOSAL], "#a": [aTag] })
   );
+
+  const swaps = from(queryStore.createQuery(CampaignSwaps, aTag));
 
   const nostrEventId = createMemo(() => {
     if (!campaign() || !(campaign()?.take as NostrSigSpec).template.tags)
@@ -114,25 +125,31 @@ function CampaignContent() {
         kinds: [KINDS.DELETION],
         authors: [pubkey],
         "#k": [KINDS.CAMPAIGN.toString()],
-        "#d": [dTag],
+        "#a": [aTag],
       },
       {
         kinds: [KINDS.PROPOSAL],
         "#a": [aTag],
       },
-      {
-        kinds: [KINDS.DELETION],
-        "#k": [KINDS.PROPOSAL.toString()],
-        "#a": [aTag],
-      },
     ]);
+
+    setTimeout(() => {
+      if (!campaignEvent()) {
+        showToast({
+          title: "Campaign not found.",
+        });
+        navigate("/", { replace: true });
+      }
+    }, 2000);
   });
 
   const deleteCampaign = async () => {
-    const identifier = campaignEvent()!.tags.find((t) => t[0] === "d")?.[1];
-    if (!identifier) return;
-
-    await actions.run(DeleteCampaign, identifier);
+    await actions.run(DeleteCampaign, dTag);
+    showToast({
+      title: "Campaign deleted.",
+      variant: "destructive",
+    });
+    navigate("/", { replace: true });
   };
 
   const closeCampaign = async () => {
@@ -149,7 +166,12 @@ function CampaignContent() {
           <div class="flex flex-col sm:flex-row gap-4 justify-between">
             <div class="flex flex-col gap-2 w-full">
               <div class="flex flex-row items-center gap-2 justify-between mb-1">
-                <h1 class="text-2xl font-bold">{title()}</h1>
+                <div class="flex flex-row items-center gap-2">
+                  <h1 class="text-2xl font-bold">{title()}</h1>
+                  <Show when={status() !== "open"}>
+                    <Badge>{status()}</Badge>
+                  </Show>
+                </div>
                 <DropdownMenu placement="bottom-end">
                   <DropdownMenuTrigger>
                     <LucideEllipsis class="w-4 h-4" />
@@ -236,14 +258,19 @@ function CampaignContent() {
           <Switch>
             <Match when={proposals()?.length !== 0}>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <For each={proposals() || []}>
+                <For each={swaps()}>
+                  {(swap) => (
+                    <SwapCard swap={swap} campaign={campaignEvent()!} />
+                  )}
+                </For>
+                {/* <For each={proposals() || []}>
                   {(proposal) => (
                     <ProposalCard
                       proposal={proposal}
                       campaign={campaignEvent()!}
                     />
                   )}
-                </For>
+                </For> */}
               </div>
             </Match>
             <Match when={proposals()?.length === 0}>
@@ -253,6 +280,7 @@ function CampaignContent() {
         </Show>
       </main>
       <SignInDialog />
+      <Toaster />
     </div>
   );
 }

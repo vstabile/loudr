@@ -3,7 +3,7 @@ import { NostrEvent } from "nostr-tools";
 import { KINDS } from "../lib/nostr";
 import { combineLatest, map, Observable, of, switchMap } from "rxjs";
 import { getTagValue } from "applesauce-core/helpers";
-import { getGivenId, getTakenId } from "../lib/ass";
+import { getGivenId, getGivenType, getTakenId, getTakenType } from "../lib/ass";
 
 export type SwapState =
   | "nonce-pending"
@@ -28,8 +28,8 @@ export type Swap = {
         T: string;
       }[]
     | null;
-  givenHash: string;
-  takenHash: string;
+  givenHash?: string;
+  takenHash?: string;
   given: NostrEvent | null;
   taken: NostrEvent | null;
   state: SwapState;
@@ -89,8 +89,10 @@ export function projectSwap(events: SwapEvents): Swap {
     nonce,
     enc_s,
     adaptors,
-    givenHash: getGivenId(proposal),
-    takenHash: getTakenId(proposal),
+    givenHash:
+      getGivenType(proposal) === "nostr" ? getGivenId(proposal) : undefined,
+    takenHash:
+      getTakenType(proposal) === "nostr" ? getTakenId(proposal) : undefined,
     given: given || null,
     taken: taken || null,
     state,
@@ -102,13 +104,19 @@ export function fetchSwapEvents(
   store: IEventStore,
   proposal: NostrEvent
 ): Observable<SwapEvents> {
-  const givenId = getGivenId(proposal);
-  const takenId = getTakenId(proposal);
+  const givenId =
+    getGivenType(proposal) === "nostr" ? getGivenId(proposal) : null;
+  const takenId =
+    getTakenType(proposal) === "nostr" ? getTakenId(proposal) : null;
+
+  let ids = [];
+  if (givenId) ids.push(givenId);
+  if (takenId) ids.push(takenId);
 
   const relatedEvents$ = store.timeline([
     { kinds: [KINDS.NONCE], "#e": [proposal.id] },
     { kinds: [KINDS.ADAPTOR], "#E": [proposal.id] },
-    { ids: [givenId, takenId] },
+    { ids: ids },
   ]);
 
   return combineLatest([of(proposal), relatedEvents$]).pipe(
@@ -120,6 +128,29 @@ export function fetchSwapEvents(
       taken: relatedEvents.find((e) => e.id === takenId),
     }))
   );
+}
+
+export function CampaignSwaps(aTag: string): Query<Swap[]> {
+  return (store) =>
+    store
+      .timeline([
+        {
+          "#a": [aTag],
+          kinds: [KINDS.PROPOSAL],
+        },
+      ])
+      .pipe(
+        // Fetch all events related to each proposal
+        switchMap((proposals) => {
+          const swapEvents$ = proposals.map((proposal) =>
+            fetchSwapEvents(store, proposal)
+          );
+
+          return swapEvents$.length > 0 ? combineLatest(swapEvents$) : of([]);
+        }),
+        // Project the swap events into Swap models
+        map((swapEventsArray) => swapEventsArray.map(projectSwap))
+      );
 }
 
 export function Swaps(pubkey: string): Query<Swap[]> {
