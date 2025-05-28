@@ -32,7 +32,7 @@ import { Label } from "./ui/label";
 import { KINDS } from "../lib/nostr";
 import { accounts } from "../lib/accounts";
 import { campaignUrl } from "../lib/utils";
-import { DEFAULT_MINT } from "../lib/cashu";
+import { DEFAULT_MINTS } from "../lib/cashu";
 
 export default function CreateCampaign() {
   const account = from(accounts.active$);
@@ -49,7 +49,7 @@ export default function CreateCampaign() {
         reaction: "+",
       },
       topics: [],
-      mints: [DEFAULT_MINT],
+      mints: DEFAULT_MINTS,
       share: false,
       shareContent: "",
     },

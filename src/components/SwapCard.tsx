@@ -3,6 +3,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  For,
   from,
   Match,
   Switch,
@@ -23,6 +24,8 @@ import {
 import { Swap } from "../queries/swap";
 import SwapNonceActions from "./SwapNonceActions";
 import SwapAdaptorActions from "./SwapAdaptorActions";
+import { LucideNut } from "lucide-solid";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function SwapCard(props: { swap: Swap; campaign: NostrEvent }) {
   const account = from(accounts.active$);
@@ -64,26 +67,54 @@ export function SwapCard(props: { swap: Swap; campaign: NostrEvent }) {
                     </div>
                     <div>sats</div>
                   </div>
-                  <Select
-                    value={mint()}
-                    onChange={setMint}
-                    options={mintOptions}
-                    placeholder="Select a mint..."
-                    itemComponent={(props: any) => (
-                      <SelectItem item={props.item}>
-                        {props.item.rawValue.replace("https://", "")}
-                      </SelectItem>
-                    )}
-                  >
-                    <SelectTrigger aria-label="Fruit" class="w-[180px]">
-                      <SelectValue class="overflow-hidden text-ellipsis">
-                        {(state: any) =>
-                          state.selectedOption().replace("https://", "")
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent />
-                  </Select>
+
+                  <Switch>
+                    <Match
+                      when={
+                        props.swap.counterparty === account()?.pubkey &&
+                        props.swap.state === "adaptor-pending"
+                      }
+                    >
+                      <div class="flex gap-2 items-center text-muted-foreground">
+                        <LucideNut class="size-5" />
+                        <Select
+                          value={mint()}
+                          onChange={setMint}
+                          options={mintOptions}
+                          placeholder="Select a mint..."
+                          itemComponent={(props: any) => (
+                            <SelectItem item={props.item}>
+                              {props.item.rawValue.replace("https://", "")}
+                            </SelectItem>
+                          )}
+                        >
+                          <SelectTrigger aria-label="Mint" class="w-[180px]">
+                            <SelectValue class="overflow-hidden text-ellipsis">
+                              {(state: any) =>
+                                state.selectedOption().replace("https://", "")
+                              }
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent />
+                        </Select>
+                      </div>
+                    </Match>
+                    <Match when={true}>
+                      <Tooltip>
+                        <TooltipTrigger class="flex gap-2 items-center text-muted-foreground">
+                          <LucideNut class="size-5" />
+                          Cashu
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <ul>
+                            <For each={mintOptions}>
+                              {(mint) => <li>{mint}</li>}
+                            </For>
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Match>
+                  </Switch>
                 </div>
               );
             })()}
@@ -118,7 +149,7 @@ export function SwapCard(props: { swap: Swap; campaign: NostrEvent }) {
           <Match
             when={account() && account()!.pubkey !== props.swap.noncePubkey}
           >
-            <SwapAdaptorActions swap={props.swap} />
+            <SwapAdaptorActions swap={props.swap} mint={mint()!} />
           </Match>
         </Switch>
       </CardFooter>

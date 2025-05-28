@@ -165,3 +165,7 @@ export function formatAmount(amount: number): string {
 
   return formatter.format(amount);
 }
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

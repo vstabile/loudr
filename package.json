@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cashu/cashu-ts": "^2.5.2",
     "@kobalte/core": "^0.13.9",
     "@modular-forms/solid": "^0.25.1",
     "@solidjs/router": "^0.15.3",
@@ -19,6 +20,7 @@
     "applesauce-factory": "^1.2.0",
     "applesauce-loaders": "^1.0.0",
     "applesauce-signers": "^1.2.0",
+    "applesauce-wallet": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-solid": "^0.485.0",

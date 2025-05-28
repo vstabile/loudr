@@ -1,7 +1,7 @@
 import { LucideClipboardCopy, LucideLoader } from "lucide-solid";
 import { Button } from "./ui/button";
 import { TextField, TextFieldInput } from "./ui/text-field";
-import { DialogTitle } from "./ui/dialog";
+import { Dialog, DialogTitle } from "./ui/dialog";
 import { createEffect, createSignal, onMount } from "solid-js";
 import { useAuth } from "../contexts/authContext";
 import QRCode from "./QRCode";
@@ -57,7 +57,7 @@ export default function RemoteSignerDialog(props: RemoteSignerDialogProps) {
   });
 
   return (
-    <>
+    <Dialog>
       <DialogTitle class="text-center">Sign In with Remote Signer</DialogTitle>
       <div class="flex flex-col items-center">
         <QRCode data={nostrConnectUri() || ""} width={240} height={240} />
@@ -140,6 +140,6 @@ export default function RemoteSignerDialog(props: RemoteSignerDialogProps) {
           Back
         </Button>
       </div>
-    </>
+    </Dialog>
   );
 }

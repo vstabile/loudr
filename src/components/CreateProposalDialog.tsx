@@ -40,11 +40,11 @@ import { KINDS } from "../lib/nostr";
 import NostrEventFields from "./NostrEventFields";
 import { queryStore } from "../stores/queryStore";
 import { campaignUrl, profileName } from "../lib/utils";
-import { MintsInput } from "./MintsInput";
-import { DEFAULT_MINT } from "../lib/cashu";
+import { DEFAULT_MINTS } from "../lib/cashu";
 import { actions } from "../actions/hub";
 import { CreateProposal as CreateProposalAction } from "../actions/createProposal";
 import { eventStore } from "../stores/eventStore";
+import MintSelect from "./MintSelect";
 
 type SigType = "cashu" | "nostr";
 
@@ -74,7 +74,7 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
       taken: {
         type: campaignContent.give.type,
         amount: undefined,
-        mint: [DEFAULT_MINT],
+        mint: campaignContent.give.mint || [DEFAULT_MINTS],
       },
       given: {
         type: campaignContent.take.type,
@@ -268,10 +268,11 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
                         <Show when={takenTypeField.value === "cashu"}>
                           <Field name="taken.mint">
                             {(mintField, mintProps) => (
-                              <MintsInput
+                              <MintSelect
                                 {...mintProps}
                                 value={mintField.value}
                                 error={mintField.error}
+                                options={campaignContent.give.mint}
                                 setValue={(value: string[]) =>
                                   // @ts-ignore
                                   setValue(form, "taken.mint", value)
