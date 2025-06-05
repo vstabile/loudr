@@ -9,16 +9,16 @@ import { CancelProposal } from "../actions/cancelProposal";
 
 export default function SwapNonceActions(props: { swap: Swap }) {
   const [isCancelling, setIsCancelling] = createSignal(false);
-  const [isPublishing, setIsPublishing] = createSignal(false);
+  const [isClaiming, setIsClaiming] = createSignal(false);
 
-  async function publishGivenEvent() {
-    setIsPublishing(true);
+  async function claimPayment() {
+    setIsClaiming(true);
 
     try {
       // await actions.run(signGivenEvent, props.swap);
     } catch {
     } finally {
-      setIsPublishing(false);
+      setIsClaiming(false);
     }
   }
 
@@ -54,21 +54,26 @@ export default function SwapNonceActions(props: { swap: Swap }) {
           </div>
         </Match>
         <Match when={props.swap.state === "given-pending"}>
+          <div class="flex items-center text-xs">
+            <LucideHourglass class="w-3 h-3 mr-1" /> Waiting publishing
+          </div>
+        </Match>
+        <Match when={props.swap.state === "taken-pending"}>
           <button
-            onClick={publishGivenEvent}
-            disabled={isPublishing()}
-            class="flex items-center justify-center bg-gradient-to-br from-primary to-accent text-primary-foreground drop-shadow text-white px-2 py-1 rounded-md w-full"
+            onClick={claimPayment}
+            disabled={isClaiming()}
+            class={
+              (isClaiming()
+                ? "bg-green-600/60 cursor-default"
+                : "bg-gradient-to-br from-green-600 to-green-500 drop-shadow hover:from-green-600 hover:to-green-400") +
+              " flex items-center justify-center border-green-700 text-white px-2 py-2 rounded-md w-full"
+            }
           >
-            <Show when={isPublishing()} fallback="Publish GM">
+            <Show when={isClaiming()} fallback="Claim Payment">
               <LucideLoader class="w-4 h-4 animate-spin" />
               Publishing
             </Show>
           </button>
-        </Match>
-        <Match when={props.swap.state === "taken-pending"}>
-          <div class="flex items-center text-xs">
-            <LucideHourglass class="w-3 h-3 mr-1" /> Pending publishing
-          </div>
         </Match>
         <Match when={props.swap.state === "completed"}>
           <div class="flex items-center">Swap completed!</div>

@@ -74,7 +74,7 @@ export default function CreateProposalDialog(props: CreateProposalDialogProps) {
       taken: {
         type: campaignContent.give.type,
         amount: undefined,
-        mint: campaignContent.give.mint || [DEFAULT_MINTS],
+        mint: campaignContent.give.mint || DEFAULT_MINTS,
       },
       given: {
         type: campaignContent.take.type,

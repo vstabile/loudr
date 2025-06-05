@@ -62,6 +62,20 @@ function CampaignContent() {
   const account = from(accounts.active$);
   const aTag = `${KINDS.CAMPAIGN}:${pubkey}:${dTag}`;
   const navigate = useNavigate();
+  let rxReq = createRxForwardReq();
+  const baseFilters = [
+    { kinds: [KINDS.CAMPAIGN], authors: [pubkey], "#d": [dTag] },
+    {
+      kinds: [KINDS.DELETION],
+      authors: [pubkey],
+      "#k": [KINDS.CAMPAIGN.toString()],
+      "#a": [aTag],
+    },
+    {
+      kinds: [KINDS.PROPOSAL],
+      "#a": [aTag],
+    },
+  ];
 
   const campaignEvent = from(
     queryStore.replaceable(KINDS.CAMPAIGN, pubkey, dTag)
@@ -111,27 +125,13 @@ function CampaignContent() {
   });
 
   onMount(async () => {
-    const rxReq = createRxForwardReq();
-
     rxNostr.use(rxReq).subscribe(({ event }) => {
       try {
         eventStore.add(event);
       } catch {}
     });
 
-    rxReq.emit([
-      { kinds: [KINDS.CAMPAIGN], authors: [pubkey], "#d": [dTag] },
-      {
-        kinds: [KINDS.DELETION],
-        authors: [pubkey],
-        "#k": [KINDS.CAMPAIGN.toString()],
-        "#a": [aTag],
-      },
-      {
-        kinds: [KINDS.PROPOSAL],
-        "#a": [aTag],
-      },
-    ]);
+    rxReq.emit(baseFilters);
 
     setTimeout(() => {
       if (!campaignEvent()) {
@@ -141,6 +141,19 @@ function CampaignContent() {
         navigate("/", { replace: true });
       }
     }, 2000);
+  });
+
+  createEffect(() => {
+    const currentSwaps = swaps();
+    if (!currentSwaps || currentSwaps.length === 0) return;
+
+    rxReq.emit([
+      ...baseFilters,
+      {
+        kinds: [KINDS.NONCE, KINDS.ADAPTOR],
+        "#e": currentSwaps.map((s) => s.id),
+      },
+    ]);
   });
 
   const deleteCampaign = async () => {
@@ -158,6 +171,7 @@ function CampaignContent() {
 
     await actions.run(CloseCampaign, campaignEvent()!);
   };
+
   return (
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Navbar />
@@ -263,14 +277,6 @@ function CampaignContent() {
                     <SwapCard swap={swap} campaign={campaignEvent()!} />
                   )}
                 </For>
-                {/* <For each={proposals() || []}>
-                  {(proposal) => (
-                    <ProposalCard
-                      proposal={proposal}
-                      campaign={campaignEvent()!}
-                    />
-                  )}
-                </For> */}
               </div>
             </Match>
             <Match when={proposals()?.length === 0}>

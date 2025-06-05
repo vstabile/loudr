@@ -101,7 +101,7 @@ export function SwapCard(props: { swap: Swap; campaign: NostrEvent }) {
                     </Match>
                     <Match when={true}>
                       <Tooltip>
-                        <TooltipTrigger class="flex gap-2 items-center text-muted-foreground">
+                        <TooltipTrigger class="flex gap-2 items-center text-muted-foreground cursor-default">
                           <LucideNut class="size-5" />
                           Cashu
                         </TooltipTrigger>

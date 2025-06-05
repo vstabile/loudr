@@ -126,6 +126,8 @@ const adaptorContentSchema = z.object({
     })
   ),
   cashu: z.string().optional(),
+  pubkey: z.string().length(64),
+  enc_key: z.string(),
 });
 
 // Common Tags Schema for both nonce and adaptor events

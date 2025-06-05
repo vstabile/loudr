@@ -1,12 +1,15 @@
-import { ProjPointType } from "@noble/curves/abstract/weierstrass";
 import { schnorr, secp256k1 as secp } from "@noble/curves/secp256k1";
-import { getEventHash, NostrEvent } from "nostr-tools";
+import { sha256 } from "@noble/hashes/sha256";
+import { getEventHash, getPublicKey, NostrEvent } from "nostr-tools";
 import { Swap } from "../queries/swap";
+import { Proof } from "@cashu/cashu-ts";
+import { hashToCurve } from "@cashu/crypto/modules/common";
 
 export type Adaptor = {
   sa: string; // The adaptor scalar
   R: string; // The proposer's public nonce
   T: string; // The adaptor point
+  Y: string; // The Cashu P2PK challenge
 };
 
 export function completeSignatures(
@@ -122,22 +125,24 @@ export function verifyAdaptors(
 
 export function computeAdaptors(
   proposal: NostrEvent,
+  proofs: Proof[],
   nonce: string,
   key: Uint8Array
 ): Adaptor[] {
   const takenType = getTakenType(proposal);
-  console.log("takenType", takenType);
-  if (takenType === "cashu") return [];
-  const takeId = getTakenId(proposal);
-  const counterparty = proposal.tags.filter((t) => t[0] === "p")[0][1];
-  // Computes the take signature challenge using counterparty's public nonce:
+  if (takenType !== "cashu") throw new Error("Only cashu is supported");
+  const cashuPubkey = getPublicKey(key);
+  const proposer = proposal.pubkey;
+  const giveId = getGivenId(proposal);
+
+  // Computes the given event signature challenge using proposer's public nonce:
   // c_take = H(R_s || P_s || m)
-  const c_take = schnorr.utils.taggedHash(
+  const c_give = schnorr.utils.taggedHash(
     "BIP0340/challenge",
     new Uint8Array([
       ...hexToBytes(nonce),
-      ...hexToBytes(counterparty),
-      ...hexToBytes(takeId),
+      ...hexToBytes(proposer),
+      ...hexToBytes(giveId),
     ])
   );
 
@@ -146,66 +151,87 @@ export function computeAdaptors(
 
   // And computes the adaptor point T as a commitment to the Nostr signature:
   // T = R_s + c_take * P_s
-  let T = R_s.add(
+  const T = R_s.add(
     schnorr.utils
-      .lift_x(BigInt("0x" + counterparty))
-      .multiply(BigInt("0x" + bytesToHex(c_take)))
+      .lift_x(BigInt("0x" + proposer))
+      .multiply(BigInt("0x" + bytesToHex(c_give)))
   );
 
-  // Generates a nonce (r_p) and the adaptor public nonce (R_p + T)
-  // ensuring that both R_p and R_a = (R_p + T) have even y-coordinates (BIP340)
-  let r_p: Uint8Array, R_p: ProjPointType<bigint>, R_a: ProjPointType<bigint>;
-  do {
-    r_p = schnorr.utils.randomPrivateKey();
-    R_p = secp.ProjectivePoint.fromPrivateKey(r_p);
+  // Generates an adaptor signature for each proof using a unique nonce
+  let adaptors: {
+    sa: string;
+    R: string;
+    T: string;
+    Y: string;
+  }[] = [];
+  for (const [_, proof] of proofs.entries()) {
+    // First he generates a nonce (r_p) and the adaptor public nonce (R_p + T)
+    // ensuring that both R_p and R_a = (R_p + T) have even y-coordinates (BIP340)
+    let r_p, R_p, R_a;
+    do {
+      r_p = schnorr.utils.randomPrivateKey();
+      R_p = secp.ProjectivePoint.fromPrivateKey(r_p);
 
-    // Negate the nonce if its point has an odd y-coordinate
-    if ((R_p.y & 1n) === 1n) {
-      r_p = negateScalar(r_p);
-      R_p = R_p.negate();
+      // Negate the nonce if its point has an odd y-coordinate
+      if ((R_p.y & 1n) === 1n) {
+        r_p = negateScalar(r_p);
+        R_p = R_p.negate();
+      }
+
+      R_a = R_p.add(T);
+      // Try again if the adaptor nonce has an odd y-coordinate
+    } while ((R_a.y & 1n) === 1n);
+
+    // Adaptor nonce X-coordinate
+    const R_a_x = hexToBytes(R_a.x.toString(16).padStart(64, "0"));
+    // Payer's nonce X-coordinate
+    const R_p_x = hexToBytes(R_p.x.toString(16).padStart(64, "0"));
+
+    // Then calculates the Cashu P2PK challenge: H(R + T || P_p || m)
+    const c_cashu = schnorr.utils.taggedHash(
+      "BIP0340/challenge",
+      new Uint8Array([
+        ...R_a_x,
+        ...hexToBytes(cashuPubkey),
+        ...sha256(proof.secret),
+      ])
+    );
+
+    // Scalars conversion to BigInt for arithmetic operations
+    const r = BigInt(`0x${bytesToHex(r_p)}`) % secp.CURVE.n;
+    let c = BigInt(`0x${bytesToHex(c_cashu)}`) % secp.CURVE.n;
+    const k = BigInt(`0x${bytesToHex(key)}`) % secp.CURVE.n;
+
+    // The challenge must be negated if Payer's private key is associated with
+    // a point on the curve with an odd y-coordinate (BIP340)
+    const P_p_point = secp.ProjectivePoint.fromPrivateKey(key);
+    if ((P_p_point.y & 1n) === 1n) {
+      c = secp.CURVE.n - c;
     }
 
-    R_a = R_p.add(T);
-    // Try again if the adaptor nonce has an odd y-coordinate
-  } while ((R_a.y & 1n) === 1n);
+    // The payer calculates the adaptor scalar: s_a = r_p + c_cashu * k_p
+    const s_a = (r + ((c * k) % secp.CURVE.n)) % secp.CURVE.n;
 
-  // Adaptor nonce X-coordinate
-  const R_a_x = hexToBytes(R_a.x.toString(16).padStart(64, "0"));
+    // The adaptor contains the scalar s_a, the payer's nonce R_p and the point T
+    const Y = hashToCurve(new TextEncoder().encode(proof.secret)).toHex(true);
+    adaptors = [
+      ...adaptors,
+      {
+        sa: s_a.toString(16).padStart(64, "0"),
+        R: R_p.toHex(),
+        T: T.toHex(),
+        Y,
+      },
+    ];
 
-  // Then calculates the give challenge:
-  // H(R + T || P_p || m)
-  const giveId = getGivenId(proposal);
-  const c_give = schnorr.utils.taggedHash(
-    "BIP0340/challenge",
-    new Uint8Array([
-      ...R_a_x,
-      ...hexToBytes(proposal.pubkey),
-      ...hexToBytes(giveId),
-    ])
-  );
-
-  // Scalars conversion to BigInt for arithmetic operations
-  const r = BigInt(`0x${bytesToHex(r_p)}`) % secp.CURVE.n;
-  let c = BigInt(`0x${bytesToHex(c_give)}`) % secp.CURVE.n;
-  const k = BigInt(`0x${bytesToHex(key)}`) % secp.CURVE.n;
-
-  // The challenge must be negated if the proposer's private key is associated with
-  // a point on the curve with an odd y-coordinate (BIP340)
-  const P_p_point = secp.ProjectivePoint.fromPrivateKey(key);
-  if ((P_p_point.y & 1n) === 1n) {
-    c = secp.CURVE.n - c;
+    // Payer shares the adaptors with the Signer
+    console.log("Proof", Y);
+    console.log("Adaptor Scalar (s_a):", s_a.toString(16).padStart(64, "0"));
+    console.log("Signer Nonce (R_p):", bytesToHex(R_p_x));
+    console.log("Adaptor Nonce (R_a):", bytesToHex(R_a_x), "\n");
   }
 
-  // Calculates the adaptor scalar: s_a = r_p + c_give * k_p
-  const s_a = (r + ((c * k) % secp.CURVE.n)) % secp.CURVE.n;
-
-  return [
-    {
-      sa: s_a.toString(16).padStart(64, "0"),
-      R: R_p.toHex(),
-      T: T.toHex(),
-    },
-  ];
+  return adaptors;
 }
 
 // Helper functions

@@ -70,9 +70,11 @@ export function projectSwap(events: SwapEvents): Swap {
   if (taken) {
     state = "completed";
   } else if (given) {
-    state = "taken-pending";
+    state =
+      adaptorPubkey === proposal.pubkey ? "taken-pending" : "given-pending";
   } else if (adaptors) {
-    state = "given-pending";
+    state =
+      adaptorPubkey === proposal.pubkey ? "given-pending" : "taken-pending";
   } else if (nonce) {
     state = "adaptor-pending";
   } else {
@@ -114,8 +116,7 @@ export function fetchSwapEvents(
   if (takenId) ids.push(takenId);
 
   const relatedEvents$ = store.timeline([
-    { kinds: [KINDS.NONCE], "#e": [proposal.id] },
-    { kinds: [KINDS.ADAPTOR], "#E": [proposal.id] },
+    { kinds: [KINDS.NONCE, KINDS.ADAPTOR], "#e": [proposal.id] },
     { ids: ids },
   ]);
 
